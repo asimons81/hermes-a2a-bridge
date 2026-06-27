@@ -4,6 +4,7 @@ description: Agent-to-Agent bridge for Hermes Agent. Call remote A2A agents and 
 kind: standalone
 provides_tools:
   - a2a_discover_agent
+  - a2a_doctor_peer
   - a2a_send_message
   - a2a_get_task
   - a2a_list_tasks

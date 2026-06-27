@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from . import client
 from .auth import redact_secrets
 from .config import database_path, load_config
+from .diagnostics import diagnose_peer
 from .errors import ClientError
 from .store import Store
 
@@ -104,6 +105,12 @@ async def a2a_discover_agent(args: dict, **kwargs):
 
 
 @safe_handler
+async def a2a_doctor_peer(args: dict, **kwargs):
+    base, token = _resolve(args["agent_url"], args.get("token"))
+    return _redact_value(await diagnose_peer(base, token=token, timeout_seconds=args.get("timeout_seconds")), token)
+
+
+@safe_handler
 async def a2a_send_message(args: dict, **kwargs):
     file_ids = _tool_file_ids(args)
     base, token = await _endpoint(args["agent_url"], args.get("token"))
@@ -173,7 +180,7 @@ def _task_text(task: dict[str, Any]) -> str | None:
 
 HANDLERS = {
     fn.__name__: fn for fn in (
-        a2a_discover_agent, a2a_send_message, a2a_get_task, a2a_list_tasks,
+        a2a_discover_agent, a2a_doctor_peer, a2a_send_message, a2a_get_task, a2a_list_tasks,
         a2a_cancel_task, a2a_registry_add, a2a_registry_list, a2a_registry_remove,
     )
 }

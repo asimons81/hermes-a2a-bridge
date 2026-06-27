@@ -7,6 +7,7 @@
 - Add GitHub Actions CI for tests, editable install verification, compile checks, and package builds.
 - Add a manual release validation workflow that builds artifacts and smoke-tests the wheel without publishing.
 - Add lightweight contributor guidance and GitHub issue/PR templates.
+- Add A2A Peer Doctor diagnostics through `hermes a2a doctor` and `a2a_doctor_peer` for safe Agent Card compatibility checks before runtime operations.
 
 ## 0.4.6 (2026-06-26)
 

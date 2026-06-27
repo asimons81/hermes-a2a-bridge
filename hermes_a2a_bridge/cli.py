@@ -14,6 +14,7 @@ from typing import Any
 from . import client
 from .auth import generate_token
 from .config import config_path, database_path, load_config, save_config, validate_server_bind
+from .diagnostics import diagnose_peer
 from .errors import BridgeError, ClientError
 from .models import build_agent_card
 from .operations import (
@@ -67,6 +68,12 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     discover = sub.add_parser("discover", help="Fetch a remote Agent Card")
     discover.add_argument("url")
     discover.add_argument("--json", action="store_true", help="Emit JSON only")
+
+    doctor = sub.add_parser("doctor", help="Diagnose remote peer compatibility from its Agent Card")
+    doctor.add_argument("agent", help="Remote registry name, base URL, or Agent Card URL")
+    doctor.add_argument("--token", help="Optional bearer token override")
+    doctor.add_argument("--timeout", type=int, default=None, help="Total Agent Card request timeout in seconds")
+    doctor.add_argument("--json", action="store_true", help="Emit JSON only")
 
     registry = sub.add_parser("registry", help="Manage named remote agents")
     registry_sub = registry.add_subparsers(dest="registry_command", required=True)
@@ -467,6 +474,26 @@ def _render_files(command: str, result: dict[str, Any]) -> None:
         )
 
 
+def _render_doctor(result: dict[str, Any]) -> None:
+    _print(f"Peer Doctor: {result['status']}")
+    if result.get("name"):
+        _print(f"Name: {result['name']}")
+    protocol = result.get("protocol", {})
+    if protocol.get("binding") or protocol.get("version"):
+        _print(f"Protocol: {protocol.get('binding') or 'unknown'} {protocol.get('version') or ''}".rstrip())
+    usable = [
+        name for name, enabled in result.get("capabilities", {}).items()
+        if enabled
+    ]
+    _print(f"Usable: {', '.join(usable) if usable else 'none detected'}")
+    for error in result.get("errors", []):
+        _print(f"Blocker: {error}")
+    for warning in result.get("warnings", []):
+        _print(f"Warning: {warning}")
+    if result.get("recommendations"):
+        _print(f"Next: {result['recommendations'][0]}")
+
+
 def _local_files(store: Store, config: dict[str, Any], args) -> dict[str, Any]:
     if args.files_command == "ingest":
         metadata = parse_file_metadata_json(args.metadata_json)
@@ -556,6 +583,9 @@ async def _remote(args, store: Store) -> dict[str, Any]:
     command = args.a2a_command
     if command == "discover":
         return _format_agent(await client.fetch_agent_card(args.url))
+    if command == "doctor":
+        base, token = _resolved(store, args.agent, getattr(args, "token", None))
+        return await diagnose_peer(base, token=token, timeout_seconds=args.timeout)
 
     base, token = _resolved(store, args.agent, getattr(args, "token", None))
     card = await client.fetch_agent_card(base)
@@ -697,6 +727,14 @@ def a2a_command(args) -> int:
             else:
                 _render_text(result)
             return 0
+
+        if command == "doctor":
+            result = asyncio.run(_remote(args, store))
+            if as_json:
+                _print(result, True)
+            else:
+                _render_doctor(result)
+            return 0 if result.get("ok") else 1
 
         if command == "maintenance":
             if args.maintenance_command == "stats":

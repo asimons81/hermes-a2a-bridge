@@ -16,6 +16,7 @@ from hermes_a2a_bridge.store import Store
 def test_tool_schema_names_are_exact():
     assert set(tools.HANDLERS) == {
         "a2a_discover_agent",
+        "a2a_doctor_peer",
         "a2a_send_message",
         "a2a_get_task",
         "a2a_list_tasks",

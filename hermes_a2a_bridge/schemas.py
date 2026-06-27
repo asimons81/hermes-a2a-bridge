@@ -21,6 +21,15 @@ NAME = {
 
 TOOL_SCHEMAS = {
     "a2a_discover_agent": _schema("Fetch an A2A Agent Card.", {"url": URL}, ["url"]),
+    "a2a_doctor_peer": _schema(
+        "Safely diagnose A2A peer compatibility from Agent Card metadata only.",
+        {
+            "agent_url": URL,
+            "token": TOKEN,
+            "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 3600},
+        },
+        ["agent_url"],
+    ),
     "a2a_send_message": _schema("Send one text and/or structured JSON data message to an A2A agent.", {
         "agent_url": URL,
         "message": {"type": "string", "minLength": 1},

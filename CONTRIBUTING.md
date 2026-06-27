@@ -4,6 +4,8 @@ Hermes A2A Bridge is a local-first HTTP+JSON subset for Hermes Agent. Contributi
 
 ## Local Checks
 
+Use Python 3.11 or newer. CI currently tests Python 3.11 and 3.12.
+
 ```bash
 python -m pip install -e ".[test]"
 python -m pytest

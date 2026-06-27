@@ -521,13 +521,13 @@ Event IDs belong to one SQLite database. No external broker is required: active 
 
 ## Development
 
+CI currently tests Python 3.11 and 3.12. Optional official SDK tests require an explicitly configured isolated `A2A_SDK_PYTHON` interpreter and skip during normal runs when it is not set.
+
 ```bash
 python -m pip install -e ".[test]"
 python -m pytest
 python -m compileall -q hermes_a2a_bridge tests
 python -m build
 ```
-
-Optional official SDK tests require an explicitly configured isolated `A2A_SDK_PYTHON` interpreter and skip during normal runs when it is not set.
 
 Do not broaden file support or make full A2A conformance claims without a design pass, tests, and docs.

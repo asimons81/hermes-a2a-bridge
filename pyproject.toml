@@ -7,8 +7,12 @@ name = "hermes-a2a-bridge"
 version = "0.4.6"
 description = "A thin, local-first Agent-to-Agent bridge for Hermes Agent"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 license = "MIT"
+classifiers = [
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
 dependencies = [
   "aiohttp>=3.9,<4",
   "pydantic>=2.6,<3",

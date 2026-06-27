@@ -19,6 +19,26 @@ def test_package_plugin_and_runtime_versions_match():
     assert plugin["version"] == "0.4.6"
     assert hermes_a2a_bridge.__version__ == "0.4.6"
 
+
+def test_python_support_metadata_matches_ci_matrix():
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    ci = yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+
+    ci_versions = {
+        str(entry["python-version"])
+        for entry in ci["jobs"]["tests"]["strategy"]["matrix"]["include"]
+    }
+    classifiers = set(project["project"]["classifiers"])
+
+    assert project["project"]["requires-python"] == ">=3.11,<4.0"
+    assert "Programming Language :: Python :: 3.11" in classifiers
+    assert "Programming Language :: Python :: 3.12" in classifiers
+    assert "Programming Language :: Python :: 3.9" not in classifiers
+    assert "Programming Language :: Python :: 3.10" not in classifiers
+    assert {"3.11", "3.12"} <= ci_versions
+    assert not ({"3.9", "3.10"} & ci_versions)
+
+
 def test_package_metadata_keeps_expected_entrypoints_dependencies_and_skill_data():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     plugin = yaml.safe_load((ROOT / "plugin.yaml").read_text(encoding="utf-8"))

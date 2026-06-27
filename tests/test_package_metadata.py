@@ -33,9 +33,10 @@ def test_python_support_metadata_matches_ci_matrix():
     assert project["project"]["requires-python"] == ">=3.11,<4.0"
     assert "Programming Language :: Python :: 3.11" in classifiers
     assert "Programming Language :: Python :: 3.12" in classifiers
+    assert "Programming Language :: Python :: 3.13" in classifiers
     assert "Programming Language :: Python :: 3.9" not in classifiers
     assert "Programming Language :: Python :: 3.10" not in classifiers
-    assert {"3.11", "3.12"} <= ci_versions
+    assert {"3.11", "3.12", "3.13"} <= ci_versions
     assert not ({"3.9", "3.10"} & ci_versions)
 
 

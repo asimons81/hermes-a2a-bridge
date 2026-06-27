@@ -521,7 +521,7 @@ Event IDs belong to one SQLite database. No external broker is required: active 
 
 ## Development
 
-CI currently tests Python 3.11 and 3.12. Optional official SDK tests require an explicitly configured isolated `A2A_SDK_PYTHON` interpreter and skip during normal runs when it is not set.
+CI currently tests Python 3.11, 3.12, and 3.13 on Ubuntu, plus Python 3.11 on Windows. Optional official SDK tests require an explicitly configured isolated `A2A_SDK_PYTHON` interpreter and skip during normal runs when it is not set.
 
 ```bash
 python -m pip install -e ".[test]"

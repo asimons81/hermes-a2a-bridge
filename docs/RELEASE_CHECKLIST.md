@@ -15,7 +15,7 @@ GitHub Actions now mirrors the local verification paths:
 - Run `python -m pip install -e .`.
 - Run `python -m compileall -q hermes_a2a_bridge tests`.
 - Confirm `python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"` prints `0.4.6`.
-- Confirm package metadata requires Python `>=3.11,<4.0`, and classifiers match the CI-tested Python 3.11 and 3.12 versions.
+- Confirm package metadata requires Python `>=3.11,<4.0`, and classifiers match the CI-tested Python 3.11, 3.12, and 3.13 versions.
 
 ## Build Artifacts
 

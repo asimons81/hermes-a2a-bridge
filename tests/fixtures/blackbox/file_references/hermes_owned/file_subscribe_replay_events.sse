@@ -1,0 +1,4 @@
+id: 7
+event: message
+data: {"artifactUpdate":{"taskId":"task-file-local","contextId":"ctx-file-local","artifact":{"artifactId":"artifact-file-local","name":"report.txt","parts":[{"file":{"fileId":"file_abcdefghijklmnopqrstuv","name":"report.txt","mimeType":"text/plain","sizeBytes":11,"sha256":"b94d27b9934d3e08a52e52d7da7dabfadeb2a7d5b8f1e5f7d6cbbf9b6a6f9a66","uri":"http://127.0.0.1:8765/files/file_abcdefghijklmnopqrstuv"},"metadata":{"purpose":"fixture"}}],"metadata":{"attachment":{"fileId":"file_abcdefghijklmnopqrstuv"}}},"append":false,"lastChunk":true,"metadata":{"final":true}}}
+

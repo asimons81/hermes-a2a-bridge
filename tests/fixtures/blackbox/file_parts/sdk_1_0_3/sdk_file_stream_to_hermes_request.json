@@ -1,0 +1,16 @@
+{
+  "message": {
+    "messageId": "sdk-file-stream",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "url": "https://example.test/report.txt",
+        "filename": "report.txt",
+        "mediaType": "text/plain"
+      }
+    ],
+    "metadata": {
+      "probe": "official-sdk-file-rejection"
+    }
+  }
+}

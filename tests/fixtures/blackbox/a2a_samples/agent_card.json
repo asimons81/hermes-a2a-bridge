@@ -1,0 +1,29 @@
+{
+  "name": "Hello World Agent",
+  "description": "Just a hello world agent",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:9999",
+      "protocolBinding": "JSONRPC"
+    }
+  ],
+  "version": "0.0.1",
+  "capabilities": {"streaming": true, "extendedAgentCard": true},
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {
+      "id": "echo_bot",
+      "name": "Echo Bot",
+      "description": "An example agent that acknowledges client request and responds with a Hello World message.",
+      "tags": ["a2a", "echo-example"],
+      "examples": ["hi", "how are you"],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain"]
+    }
+  ],
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3",
+  "supportsAuthenticatedExtendedCard": true,
+  "url": "http://127.0.0.1:9999"
+}

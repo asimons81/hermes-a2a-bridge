@@ -1,0 +1,18 @@
+{
+  "task": {
+    "id": "sdk-task-1",
+    "contextId": "sdk-context-1",
+    "status": {"state": "TASK_STATE_COMPLETED"},
+    "artifacts": [
+      {
+        "artifactId": "sdk-artifact-1",
+        "parts": [{"text": "sdk result", "mediaType": "text/plain"}],
+        "metadata": {"source": "official-sdk"}
+      }
+    ],
+    "metadata": {
+      "source": "a2a-sdk-1.1.0",
+      "requestMetadata": {"trace": "blackbox"}
+    }
+  }
+}

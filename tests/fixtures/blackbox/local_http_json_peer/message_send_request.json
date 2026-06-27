@@ -1,0 +1,15 @@
+{
+  "message": {
+    "messageId": "00000000-0000-4000-8000-000000000001",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "hello local peer",
+        "mediaType": "text/plain"
+      }
+    ],
+    "metadata": {
+      "probe": "phase-10"
+    }
+  }
+}

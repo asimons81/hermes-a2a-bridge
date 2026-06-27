@@ -1,0 +1,25 @@
+{
+  "artifactUpdate": {
+    "taskId": "task-with-data-artifact",
+    "contextId": "ctx-data",
+    "artifact": {
+      "artifactId": "artifact-data-1",
+      "name": "result",
+      "parts": [
+        {
+          "data": {
+            "answer": 42
+          }
+        }
+      ],
+      "metadata": {
+        "mediaType": "application/json"
+      }
+    },
+    "append": false,
+    "lastChunk": true,
+    "metadata": {
+      "final": true
+    }
+  }
+}

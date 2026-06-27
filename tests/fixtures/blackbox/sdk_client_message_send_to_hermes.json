@@ -1,0 +1,8 @@
+{
+  "message": {
+    "messageId": "sdk-client-send",
+    "role": "ROLE_USER",
+    "parts": [{"text": "hello", "mediaType": "text/plain"}],
+    "metadata": {"probe": "sdk-client"}
+  }
+}

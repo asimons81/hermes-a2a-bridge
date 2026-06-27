@@ -1,0 +1,49 @@
+{
+  "task": {
+    "id": "hermes-task-data-to-sdk",
+    "contextId": "hermes-context-data-to-sdk",
+    "status": {
+      "state": "TASK_STATE_COMPLETED"
+    },
+    "history": [
+      {
+        "role": "ROLE_USER",
+        "messageId": "sdk-client-data-to-hermes",
+        "parts": [
+          {
+            "data": {
+              "sdkClient": true,
+              "items": [
+                1,
+                2
+              ]
+            },
+            "metadata": {
+              "source": "official-sdk-harness"
+            }
+          }
+        ],
+        "metadata": {
+          "probe": "official-sdk-harness"
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "artifactId": "hermes-data-artifact-to-sdk",
+        "name": "result",
+        "parts": [
+          {
+            "data": {
+              "ok": true,
+              "source": "hermes"
+            }
+          }
+        ],
+        "metadata": {
+          "mediaType": "application/json"
+        }
+      }
+    ]
+  }
+}

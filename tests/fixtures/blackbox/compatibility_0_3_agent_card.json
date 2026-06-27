@@ -1,0 +1,12 @@
+{
+  "name": "A2A 0.3 Compatibility Example",
+  "description": "Stable legacy discovery shape for compatibility documentation.",
+  "url": "http://127.0.0.1:18765/v1",
+  "version": "0.3-fixture",
+  "protocolVersion": "0.3.0",
+  "preferredTransport": "HTTP+JSON",
+  "capabilities": {"streaming": true, "pushNotifications": false},
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": []
+}

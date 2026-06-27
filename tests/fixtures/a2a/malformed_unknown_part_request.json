@@ -1,0 +1,7 @@
+{
+  "message": {
+    "messageId": "message-unknown",
+    "role": "ROLE_USER",
+    "parts": [{"kind": "mystery", "value": "unknown"}]
+  }
+}

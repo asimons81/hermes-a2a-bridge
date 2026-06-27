@@ -1,0 +1,22 @@
+{
+  "message": {
+    "messageId": "sdk-1-1-data-only",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "data": {
+          "alpha": 1,
+          "nested": {
+            "ok": true
+          }
+        },
+        "metadata": {
+          "source": "sanitized-sdk-1-1-0-fixture"
+        }
+      }
+    ],
+    "metadata": {
+      "trace": "sdk-1-1-data"
+    }
+  }
+}

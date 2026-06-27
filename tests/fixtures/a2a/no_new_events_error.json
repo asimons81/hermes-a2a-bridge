@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "code": "no_new_events",
+  "error": "No newer stored events are available"
+}

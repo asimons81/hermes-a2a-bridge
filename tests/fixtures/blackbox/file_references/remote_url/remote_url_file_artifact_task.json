@@ -1,0 +1,47 @@
+{
+  "id": "task-file-remote",
+  "contextId": "ctx-file-remote",
+  "status": {
+    "state": "TASK_STATE_COMPLETED",
+    "timestamp": "2026-06-25T00:00:01+00:00"
+  },
+  "history": [
+    {
+      "role": "ROLE_USER",
+      "messageId": "msg-file-remote",
+      "parts": [
+        {
+          "text": "Attach the remote reference.",
+          "mediaType": "text/plain"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "artifactId": "artifact-file-remote",
+      "name": "remote-report.pdf",
+      "parts": [
+        {
+          "file": {
+            "fileId": "file_remoteabcdefghijklmnop",
+            "name": "remote-report.pdf",
+            "mimeType": "application/pdf",
+            "metadataOnly": true,
+            "bytesAvailable": false,
+            "sourceUrl": "https://example.test/reports/remote-report.pdf"
+          },
+          "metadata": {
+            "purpose": "reference-only"
+          }
+        }
+      ],
+      "metadata": {
+        "attachment": {
+          "fileId": "file_remoteabcdefghijklmnop"
+        }
+      }
+    }
+  ],
+  "metadata": {}
+}

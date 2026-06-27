@@ -1,0 +1,30 @@
+{
+  "name": "Rich External Agent",
+  "description": "A richer public A2A Agent Card used for client compatibility tests.",
+  "version": "2026.6.1",
+  "provider": {"organization": "Example Labs", "url": "https://example.test"},
+  "documentationUrl": "https://example.test/docs",
+  "iconUrl": "https://example.test/icon.png",
+  "supportedInterfaces": [
+    {"url": "http://127.0.0.1:9000/a2a", "protocolBinding": "HTTP+JSON", "protocolVersion": "1.0", "tenant": "demo"}
+  ],
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "extendedAgentCard": false,
+    "extensions": [{"uri": "https://example.test/extensions/trace/v1", "required": false}]
+  },
+  "securitySchemes": {"bearer": {"httpAuthSecurityScheme": {"scheme": "bearer"}}},
+  "securityRequirements": [{"bearer": []}],
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [{
+    "id": "summarize",
+    "name": "Summarize",
+    "description": "Summarize supplied text.",
+    "tags": ["summary", "text"],
+    "examples": ["Summarize this paragraph"],
+    "inputModes": ["text/plain"],
+    "outputModes": ["text/plain"]
+  }]
+}

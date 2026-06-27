@@ -1,0 +1,35 @@
+{
+  "name": "Local HTTP JSON Compatibility Peer",
+  "description": "Deterministic test-only peer for Hermes HTTP+JSON 1.0 subset capture.",
+  "version": "1.0.0-local-compat",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:PORT",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "local-compat",
+      "name": "Local Compatibility",
+      "description": "Deterministic text and JSON test behavior.",
+      "tags": [
+        "test",
+        "compatibility"
+      ]
+    }
+  ]
+}

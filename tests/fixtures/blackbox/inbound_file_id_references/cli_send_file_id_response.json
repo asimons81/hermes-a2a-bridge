@@ -1,0 +1,55 @@
+{
+  "task": {
+    "id": "task-cli-file-id",
+    "contextId": "ctx-cli-file-id",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "message": {
+        "messageId": "cli-result",
+        "role": "ROLE_AGENT",
+        "parts": [
+          {
+            "text": "received stored file reference",
+            "mediaType": "text/plain"
+          }
+        ]
+      }
+    },
+    "history": [
+      {
+        "messageId": "cli-send-file-id",
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "analyze this",
+            "mediaType": "text/plain"
+          },
+          {
+            "file": {
+              "fileId": "file_abcdefghijklmnopqrstuv",
+              "name": "report.txt",
+              "mimeType": "text/plain",
+              "sizeBytes": 5,
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "bytesAvailable": true
+            }
+          }
+        ]
+      }
+    ],
+    "artifacts": [],
+    "metadata": {
+      "inputFileReferences": [
+        {
+          "fileId": "file_abcdefghijklmnopqrstuv",
+          "name": "report.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 5,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytesAvailable": true,
+          "source": "local"
+        }
+      ]
+    }
+  }
+}

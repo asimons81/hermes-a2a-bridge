@@ -1,0 +1,12 @@
+{
+  "name": "Hermes Agent",
+  "description": "A local text-only Hermes Agent bridge.",
+  "version": "0.2.2",
+  "url": "http://127.0.0.1:8765",
+  "provider": {"organization": "local", "url": "http://127.0.0.1:8765"},
+  "capabilities": {"streaming": true, "pushNotifications": false},
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [{"id": "hermes-chat", "name": "Hermes Chat", "description": "Send a text task.", "tags": ["text"]}],
+  "additionalInterfaces": [{"url": "http://127.0.0.1:8765", "transport": "HTTP+JSON"}]
+}

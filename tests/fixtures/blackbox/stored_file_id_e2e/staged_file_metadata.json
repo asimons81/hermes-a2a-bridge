@@ -1,0 +1,11 @@
+{
+  "fileId": "file_e2eclientabcdefghijklmnop",
+  "name": "report.txt",
+  "mimeType": "text/plain",
+  "sizeBytes": 22,
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source": "local_cli",
+  "metadata": {
+    "scope": "stored-file-id-e2e"
+  }
+}

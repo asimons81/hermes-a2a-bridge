@@ -1,0 +1,16 @@
+id: 1
+event: message
+data: {"task":{"id":"hermes-stream-data-to-sdk","contextId":"hermes-stream-context-to-sdk","status":{"state":"TASK_STATE_SUBMITTED"},"history":[{"role":"ROLE_USER","messageId":"sdk-client-stream-data-to-hermes","parts":[{"data":{"stream":true}}]}]}}
+
+id: 2
+event: message
+data: {"statusUpdate":{"taskId":"hermes-stream-data-to-sdk","contextId":"hermes-stream-context-to-sdk","status":{"state":"TASK_STATE_WORKING"}}}
+
+id: 3
+event: message
+data: {"artifactUpdate":{"taskId":"hermes-stream-data-to-sdk","contextId":"hermes-stream-context-to-sdk","artifact":{"artifactId":"hermes-stream-data-artifact-to-sdk","name":"result","parts":[{"data":{"ok":true,"source":"hermes"}}],"metadata":{"mediaType":"application/json"}},"lastChunk":true,"metadata":{"final":true}}}
+
+id: 4
+event: message
+data: {"statusUpdate":{"taskId":"hermes-stream-data-to-sdk","contextId":"hermes-stream-context-to-sdk","status":{"state":"TASK_STATE_COMPLETED"},"metadata":{"final":true}}}
+

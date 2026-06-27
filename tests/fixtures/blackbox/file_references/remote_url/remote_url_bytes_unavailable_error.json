@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "error": "This attachment is a metadata-only remote URL reference and has no local bytes.",
+  "code": "file_bytes_unavailable"
+}

@@ -1,0 +1,18 @@
+{
+  "success": false,
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "Unsupported message: File parts are not supported yet. Hermes A2A Bridge currently supports text and structured JSON data parts.",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "INVALID_REQUEST",
+        "domain": "a2a-protocol.org",
+        "metadata": {
+          "bridgeCode": "unsupported_part_type"
+        }
+      }
+    ]
+  }
+}

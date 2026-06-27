@@ -1,0 +1,11 @@
+{
+  "tool": "a2a_send_message",
+  "arguments": {
+    "agent_url": "http://127.0.0.1:PORT",
+    "message": "tool stored id",
+    "token": "[REDACTED]",
+    "file_ids": [
+      "file_e2etoolabcdefghijklmnopq"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Official SDK Blackbox Agent",
+  "description": "Local text-only fixture backed by a2a-sdk 1.0.3.",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:18765",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "version": "1.0.3-fixture",
+  "capabilities": {"streaming": true, "pushNotifications": false},
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "description": "Returns deterministic text.",
+      "tags": ["text", "blackbox"]
+    }
+  ]
+}

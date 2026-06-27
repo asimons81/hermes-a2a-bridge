@@ -1,0 +1,25 @@
+{
+  "message": {
+    "messageId": "sdk-client-mixed-to-hermes",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "mixed",
+        "mediaType": "text/plain"
+      },
+      {
+        "data": [
+          {
+            "name": "Ada"
+          },
+          {
+            "name": "Grace"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "probe": "official-sdk-harness"
+    }
+  }
+}

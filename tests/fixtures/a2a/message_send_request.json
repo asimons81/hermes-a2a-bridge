@@ -1,0 +1,8 @@
+{
+  "message": {
+    "messageId": "external-send-message",
+    "role": "ROLE_USER",
+    "parts": [{"text": "Hello", "mediaType": "text/plain"}],
+    "contextId": "context-1"
+  }
+}

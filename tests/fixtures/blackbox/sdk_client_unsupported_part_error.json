@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "Unsupported message: File part at index 0 is not supported; only text/plain text parts are accepted",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "CONTENT_TYPE_NOT_SUPPORTED",
+        "domain": "a2a-protocol.org",
+        "metadata": {"bridgeCode": "unsupported_message"}
+      }
+    ]
+  }
+}

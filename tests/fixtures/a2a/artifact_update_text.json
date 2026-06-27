@@ -1,0 +1,14 @@
+{
+  "artifactUpdate": {
+    "taskId": "task-1",
+    "contextId": "context-1",
+    "artifact": {
+      "artifactId": "artifact-1",
+      "parts": [{"kind": "text", "text": "Hello back", "mediaType": "text/plain"}],
+      "metadata": {"mediaType": "text/plain"}
+    },
+    "append": false,
+    "lastChunk": true,
+    "metadata": {"final": true}
+  }
+}

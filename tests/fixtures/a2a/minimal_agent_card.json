@@ -1,0 +1,14 @@
+{
+  "name": "Minimal External Agent",
+  "description": "A minimal text-only external agent.",
+  "version": "1.0.0",
+  "supportedInterfaces": [
+    {"url": "http://127.0.0.1:9000", "protocolBinding": "HTTP+JSON", "protocolVersion": "1.0"}
+  ],
+  "capabilities": {"streaming": true, "pushNotifications": false},
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {"id": "chat", "name": "Chat", "description": "Answer a text prompt.", "tags": ["text"]}
+  ]
+}

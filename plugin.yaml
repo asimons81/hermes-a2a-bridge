@@ -1,0 +1,15 @@
+name: a2a-bridge
+version: 0.4.6
+description: Agent-to-Agent bridge for Hermes Agent. Call remote A2A agents and expose Hermes as a local A2A agent.
+kind: standalone
+provides_tools:
+  - a2a_discover_agent
+  - a2a_send_message
+  - a2a_get_task
+  - a2a_list_tasks
+  - a2a_cancel_task
+  - a2a_registry_add
+  - a2a_registry_list
+  - a2a_registry_remove
+provides_cli:
+  - a2a

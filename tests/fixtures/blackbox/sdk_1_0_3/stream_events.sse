@@ -1,0 +1,6 @@
+data: {"task":{"id":"sdk-task-1","contextId":"sdk-context-1","status":{"state":"TASK_STATE_SUBMITTED"},"metadata":{"source":"a2a-sdk-1.0.3"}}}
+
+data: {"artifactUpdate":{"taskId":"sdk-task-1","contextId":"sdk-context-1","artifact":{"artifactId":"sdk-artifact-1","parts":[{"text":"sdk streamed result","mediaType":"text/plain"}]},"lastChunk":true}}
+
+data: {"statusUpdate":{"taskId":"sdk-task-1","contextId":"sdk-context-1","status":{"state":"TASK_STATE_COMPLETED"}}}
+

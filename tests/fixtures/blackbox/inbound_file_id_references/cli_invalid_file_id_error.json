@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "error": "Invalid stored file ID reference.",
+  "code": "invalid_file_id"
+}

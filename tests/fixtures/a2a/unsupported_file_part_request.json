@@ -1,0 +1,7 @@
+{
+  "message": {
+    "messageId": "message-file",
+    "role": "ROLE_USER",
+    "parts": [{"url": "https://example.test/input.txt", "filename": "input.txt", "mediaType": "text/plain"}]
+  }
+}

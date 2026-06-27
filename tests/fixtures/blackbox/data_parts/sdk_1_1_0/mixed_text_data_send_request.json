@@ -1,0 +1,25 @@
+{
+  "message": {
+    "messageId": "sdk-1-1-mixed-data",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "Summarize these rows",
+        "mediaType": "text/plain"
+      },
+      {
+        "data": [
+          {
+            "name": "Ada"
+          },
+          {
+            "name": "Grace"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "trace": "sdk-1-1-mixed-data"
+    }
+  }
+}

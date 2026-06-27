@@ -1,0 +1,4 @@
+{
+  "skipped": true,
+  "reason": "The official helloworld sample advertises JSONRPC with protocolVersion 0.3 and no HTTP+JSON 1.0 interface."
+}

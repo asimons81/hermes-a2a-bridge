@@ -1,0 +1,8 @@
+{
+  "statusUpdate": {
+    "taskId": "task-1",
+    "contextId": "context-1",
+    "status": {"state": "TASK_STATE_COMPLETED", "timestamp": "2026-06-23T12:00:01+00:00"},
+    "metadata": {"final": true}
+  }
+}

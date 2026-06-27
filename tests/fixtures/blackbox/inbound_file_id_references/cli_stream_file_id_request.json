@@ -1,0 +1,17 @@
+{
+  "message": {
+    "messageId": "cli-stream-file-id",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "stream this",
+        "mediaType": "text/plain"
+      },
+      {
+        "file": {
+          "fileId": "file_abcdefghijklmnopqrstuv"
+        }
+      }
+    ]
+  }
+}

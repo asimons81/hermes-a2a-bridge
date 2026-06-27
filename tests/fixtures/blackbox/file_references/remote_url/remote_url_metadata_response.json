@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "file": {
+    "fileId": "file_remoteabcdefghijklmnop",
+    "name": "remote-report.pdf",
+    "mimeType": "application/pdf",
+    "source": "remote_url",
+    "createdAt": "2026-06-25T00:00:00+00:00",
+    "metadata": {
+      "purpose": "reference-only"
+    },
+    "metadataOnly": true,
+    "bytesAvailable": false,
+    "sourceUrl": "https://example.test/reports/remote-report.pdf"
+  }
+}

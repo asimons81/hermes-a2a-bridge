@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "code": "data_part_too_large",
+  "error": "Unsupported message: Data part at index 0 exceeds configured max_data_part_bytes (8)."
+}

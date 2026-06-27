@@ -1,0 +1,66 @@
+{
+  "task": {
+    "id": "task-inbound-file-id",
+    "contextId": "ctx-inbound-file-id",
+    "status": {
+      "state": "TASK_STATE_COMPLETED"
+    },
+    "history": [
+      {
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "Summarize this file",
+            "mediaType": "text/plain"
+          },
+          {
+            "file": {
+              "fileId": "file_abcdefghijklmnopqrstuv",
+              "name": "report.txt",
+              "mimeType": "text/plain",
+              "sizeBytes": 11,
+              "sha256": "b94d27b9934d3e08a52e52d7da7dabfadeb2a7d5b8f1e5f7d6cbbf9b6a6f9a66",
+              "bytesAvailable": true
+            }
+          }
+        ],
+        "messageId": "inbound-file-gates-open",
+        "metadata": {},
+        "extensions": [],
+        "referenceTaskIds": []
+      }
+    ],
+    "artifacts": [
+      {
+        "artifactId": "artifact-text-result",
+        "name": "result",
+        "parts": [
+          {
+            "text": "ok",
+            "mediaType": "text/plain"
+          }
+        ],
+        "metadata": {
+          "mediaType": "text/plain"
+        }
+      }
+    ],
+    "metadata": {
+      "inputFileReferences": [
+        {
+          "fileId": "file_abcdefghijklmnopqrstuv",
+          "name": "report.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 11,
+          "sha256": "b94d27b9934d3e08a52e52d7da7dabfadeb2a7d5b8f1e5f7d6cbbf9b6a6f9a66",
+          "bytesAvailable": true,
+          "source": "local"
+        }
+      ],
+      "executor": {
+        "status": "completed",
+        "resultText": "ok"
+      }
+    }
+  }
+}

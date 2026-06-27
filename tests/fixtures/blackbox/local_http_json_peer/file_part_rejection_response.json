@@ -1,0 +1,17 @@
+{
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "File parts are not supported by this local compatibility peer.",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "CONTENT_TYPE_NOT_SUPPORTED",
+        "domain": "local-http-json-peer.test",
+        "metadata": {
+          "bridgeCode": "unsupported_part_type"
+        }
+      }
+    ]
+  }
+}

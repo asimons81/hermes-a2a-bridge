@@ -1,0 +1,49 @@
+{
+  "sdkPackage": "a2a-sdk",
+  "sdkVersion": "1.1.0",
+  "probeDate": "2026-06-26",
+  "runtimeDependencyAdded": false,
+  "partFields": [
+    "text",
+    "raw",
+    "url",
+    "data",
+    "metadata",
+    "filename",
+    "media_type"
+  ],
+  "results": {
+    "fileId": {
+      "accepted": false,
+      "exceptionType": "ParseError",
+      "exception": "Message type lf.a2a.v1.Part has no field named file at SendMessageRequest.message.parts[0]."
+    },
+    "uri": {
+      "accepted": false,
+      "exceptionType": "ParseError",
+      "exception": "Message type lf.a2a.v1.Part has no field named file at SendMessageRequest.message.parts[0]."
+    },
+    "bytes": {
+      "accepted": false,
+      "exceptionType": "ParseError",
+      "exception": "Message type lf.a2a.v1.Part has no field named file at SendMessageRequest.message.parts[0]."
+    },
+    "sdk_url": {
+      "accepted": true,
+      "wireShape": {
+        "url": "https://example.com/report.pdf",
+        "filename": "report.pdf",
+        "mediaType": "application/pdf"
+      }
+    },
+    "sdk_raw": {
+      "accepted": true,
+      "wireShape": {
+        "raw": "[OMITTED_BASE64_BYTES]",
+        "filename": "report.txt",
+        "mediaType": "text/plain"
+      }
+    }
+  },
+  "conclusion": "The official SDK model cannot emit Hermes nested file.fileId, file.uri, or file.bytes parts. SDK-native url and raw fields parse, and Hermes rejects those fields at runtime."
+}

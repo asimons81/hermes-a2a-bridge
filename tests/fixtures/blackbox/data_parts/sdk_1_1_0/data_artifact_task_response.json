@@ -1,0 +1,26 @@
+{
+  "id": "sdk-task-data-artifact-1",
+  "contextId": "sdk-context-data-artifact-1",
+  "status": {
+    "state": "TASK_STATE_COMPLETED"
+  },
+  "artifacts": [
+    {
+      "artifactId": "sdk-artifact-data-response-1",
+      "parts": [
+        {
+          "data": {
+            "ok": true,
+            "rows": [
+              1,
+              2
+            ]
+          }
+        }
+      ],
+      "metadata": {
+        "mediaType": "application/json"
+      }
+    }
+  ]
+}

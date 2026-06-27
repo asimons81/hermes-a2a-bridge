@@ -1,0 +1,16 @@
+{
+  "id": "task-failed",
+  "contextId": "context-1",
+  "status": {
+    "state": "TASK_STATE_FAILED",
+    "timestamp": "2026-06-24T12:00:00Z",
+    "message": {
+      "messageId": "message-failed",
+      "role": "ROLE_AGENT",
+      "parts": [{"text": "The external agent could not complete the task.", "mediaType": "text/plain"}],
+      "contextId": "context-1",
+      "taskId": "task-failed"
+    }
+  },
+  "metadata": {"external": true}
+}

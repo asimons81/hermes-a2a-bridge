@@ -1,0 +1,17 @@
+{
+  "message": {
+    "messageId": "inbound-file-gates-open",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "Summarize this file",
+        "mediaType": "text/plain"
+      },
+      {
+        "file": {
+          "fileId": "file_abcdefghijklmnopqrstuv"
+        }
+      }
+    ]
+  }
+}

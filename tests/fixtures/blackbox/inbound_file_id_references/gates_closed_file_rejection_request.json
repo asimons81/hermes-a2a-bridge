@@ -1,0 +1,13 @@
+{
+  "message": {
+    "messageId": "inbound-file-gates-closed",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "file": {
+          "fileId": "file_abcdefghijklmnopqrstuv"
+        }
+      }
+    ]
+  }
+}

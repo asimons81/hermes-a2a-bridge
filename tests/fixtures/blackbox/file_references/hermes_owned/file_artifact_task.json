@@ -1,0 +1,47 @@
+{
+  "id": "task-file-local",
+  "contextId": "ctx-file-local",
+  "status": {
+    "state": "TASK_STATE_COMPLETED",
+    "timestamp": "2026-06-25T00:00:01+00:00"
+  },
+  "history": [
+    {
+      "role": "ROLE_USER",
+      "messageId": "msg-file-local",
+      "parts": [
+        {
+          "text": "Attach the staged report.",
+          "mediaType": "text/plain"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "artifactId": "artifact-file-local",
+      "name": "report.txt",
+      "parts": [
+        {
+          "file": {
+            "fileId": "file_abcdefghijklmnopqrstuv",
+            "name": "report.txt",
+            "mimeType": "text/plain",
+            "sizeBytes": 11,
+            "sha256": "b94d27b9934d3e08a52e52d7da7dabfadeb2a7d5b8f1e5f7d6cbbf9b6a6f9a66",
+            "uri": "http://127.0.0.1:8765/files/file_abcdefghijklmnopqrstuv"
+          },
+          "metadata": {
+            "purpose": "fixture"
+          }
+        }
+      ],
+      "metadata": {
+        "attachment": {
+          "fileId": "file_abcdefghijklmnopqrstuv"
+        }
+      }
+    }
+  ],
+  "metadata": {}
+}

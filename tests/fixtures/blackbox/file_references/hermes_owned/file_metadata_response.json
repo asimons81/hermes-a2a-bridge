@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "file": {
+    "fileId": "file_abcdefghijklmnopqrstuv",
+    "name": "report.txt",
+    "mimeType": "text/plain",
+    "sizeBytes": 11,
+    "sha256": "b94d27b9934d3e08a52e52d7da7dabfadeb2a7d5b8f1e5f7d6cbbf9b6a6f9a66",
+    "source": "local",
+    "createdAt": "2026-06-25T00:00:00+00:00",
+    "metadata": {
+      "purpose": "fixture"
+    }
+  }
+}

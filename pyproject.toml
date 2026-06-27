@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-a2a-bridge"
+version = "0.4.6"
+description = "A thin, local-first Agent-to-Agent bridge for Hermes Agent"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "aiohttp>=3.9,<4",
+  "pydantic>=2.6,<3",
+  "pyyaml>=6,<7",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[project.entry-points."hermes_agent.plugins"]
+a2a-bridge = "hermes_a2a_bridge"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["hermes_a2a_bridge*"]
+
+[tool.setuptools.package-data]
+hermes_a2a_bridge = ["skills/*/SKILL.md"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["integration: optional tests requiring an external a2a-sdk interpreter"]

@@ -1,0 +1,12 @@
+{
+  "method": "GET",
+  "path": "/tasks/local-peer-task-1",
+  "headers": {
+    "Host": "127.0.0.1:PORT",
+    "Accept": "application/a2a+json, application/json",
+    "A2A-Version": "1.0",
+    "Accept-Encoding": "gzip, deflate, br",
+    "User-Agent": "Python/3.x aiohttp/3.x"
+  },
+  "body": null
+}

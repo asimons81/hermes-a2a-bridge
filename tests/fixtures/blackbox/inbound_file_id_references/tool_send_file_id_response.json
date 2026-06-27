@@ -1,0 +1,58 @@
+{
+  "success": true,
+  "task": {
+    "id": "task-tool-file-id",
+    "contextId": "ctx-tool-file-id",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "timestamp": "2026-06-26T00:00:00+00:00",
+      "message": {
+        "role": "ROLE_AGENT",
+        "parts": [
+          {
+            "text": "ok",
+            "mediaType": "text/plain"
+          }
+        ],
+        "messageId": "agent-tool-file-id"
+      }
+    },
+    "history": [
+      {
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "analyze this",
+            "mediaType": "text/plain"
+          },
+          {
+            "file": {
+              "fileId": "file_abcdefghijklmnopqrstuv",
+              "name": "report.txt",
+              "mimeType": "text/plain",
+              "sizeBytes": 5,
+              "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+              "bytesAvailable": true
+            }
+          }
+        ],
+        "messageId": "tool-send-file-id"
+      }
+    ],
+    "artifacts": [],
+    "metadata": {
+      "inputFileReferences": [
+        {
+          "fileId": "file_abcdefghijklmnopqrstuv",
+          "name": "report.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 5,
+          "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+          "bytesAvailable": true,
+          "source": "local"
+        }
+      ]
+    }
+  },
+  "resultText": "ok"
+}

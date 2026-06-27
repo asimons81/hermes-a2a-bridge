@@ -1,0 +1,8 @@
+{
+  "message": {
+    "messageId": "sdk-client-generated-message-id",
+    "metadata": {"trace": "blackbox"},
+    "parts": [{"mediaType": "text/plain", "text": "hello"}],
+    "role": "ROLE_USER"
+  }
+}

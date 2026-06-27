@@ -1,0 +1,7 @@
+id: 1
+event: message
+data: {"task":{"id":"task-cli-stream-file-id","contextId":"ctx-cli-stream-file-id","status":{"state":"TASK_STATE_SUBMITTED"},"metadata":{"inputFileReferences":[{"fileId":"file_abcdefghijklmnopqrstuv","name":"report.txt","mimeType":"text/plain","sizeBytes":5,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","bytesAvailable":true,"source":"local"}]}}}
+
+id: 2
+event: message
+data: {"statusUpdate":{"taskId":"task-cli-stream-file-id","contextId":"ctx-cli-stream-file-id","status":{"state":"TASK_STATE_COMPLETED","message":{"messageId":"cli-stream-result","role":"ROLE_AGENT","parts":[{"text":"received stored file reference","mediaType":"text/plain"}]}},"metadata":{"final":true}}}

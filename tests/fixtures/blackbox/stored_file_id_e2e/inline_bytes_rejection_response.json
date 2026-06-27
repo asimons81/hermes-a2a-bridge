@@ -1,0 +1,17 @@
+{
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "Unsupported message: Inline file bytes are not supported.",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "INVALID_REQUEST",
+        "domain": "a2a-protocol.org",
+        "metadata": {
+          "bridgeCode": "unsupported_inline_file_bytes"
+        }
+      }
+    ]
+  }
+}

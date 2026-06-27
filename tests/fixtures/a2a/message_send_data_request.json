@@ -1,0 +1,18 @@
+{
+  "message": {
+    "messageId": "data-message-1",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "kind": "data",
+        "data": {
+          "topic": "status",
+          "count": 2
+        },
+        "metadata": {
+          "source": "fixture"
+        }
+      }
+    ]
+  }
+}

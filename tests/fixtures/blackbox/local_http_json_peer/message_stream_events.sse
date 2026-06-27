@@ -1,0 +1,12 @@
+id: 1
+event: message
+data: {"task":{"id":"local-peer-task-1","contextId":"local-peer-context-1","status":{"state":"TASK_STATE_SUBMITTED"},"history":[],"metadata":{"source":"local-http-json-peer"}}}
+
+id: 2
+event: message
+data: {"artifactUpdate":{"taskId":"local-peer-task-1","contextId":"local-peer-context-1","artifact":{"artifactId":"local-peer-artifact-1","parts":[{"text":"local peer streamed result","mediaType":"text/plain"}]},"lastChunk":true,"metadata":{"source":"local-http-json-peer"}}}
+
+id: 3
+event: message
+data: {"statusUpdate":{"taskId":"local-peer-task-1","contextId":"local-peer-context-1","status":{"state":"TASK_STATE_COMPLETED"},"metadata":{"final":true}}}
+

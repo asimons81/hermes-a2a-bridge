@@ -1,0 +1,36 @@
+{
+  "task": {
+    "id": "sdk-task-data-1",
+    "contextId": "sdk-context-data-1",
+    "status": {
+      "state": "TASK_STATE_COMPLETED"
+    },
+    "artifacts": [
+      {
+        "artifactId": "sdk-artifact-data-1",
+        "parts": [
+          {
+            "data": {
+              "acceptedDataParts": [
+                {
+                  "alpha": 1,
+                  "nested": {
+                    "ok": true
+                  }
+                }
+              ],
+              "sdkVersion": "1.1.0"
+            },
+            "metadata": {
+              "source": "official-sdk-harness"
+            }
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "source": "official-sdk-harness",
+      "requestDataPartCount": 1
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "parts": {
+    "allow_file_parts": true,
+    "allow_file_id_references": true,
+    "allow_remote_url_file_references": false,
+    "allow_inline_file_bytes": false
+  },
+  "files": {
+    "auto_fetch_remote_urls": false,
+    "allow_inline_bytes": false
+  },
+  "scope": "local-open-gate-stored-id-only"
+}

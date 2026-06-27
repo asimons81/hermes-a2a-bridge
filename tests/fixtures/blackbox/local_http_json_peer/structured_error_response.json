@@ -1,0 +1,17 @@
+{
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "Local compatibility peer returned a structured error.",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "LOCAL_COMPATIBILITY_ERROR",
+        "domain": "local-http-json-peer.test",
+        "metadata": {
+          "bridgeCode": "local_peer_structured_error"
+        }
+      }
+    ]
+  }
+}

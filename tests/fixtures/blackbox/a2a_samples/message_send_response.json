@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "code": "unsupported_protocol_version",
+  "error": "Peer advertises A2A 0.3 REST behavior, which Hermes A2A Bridge does not implement. This bridge supports its documented A2A 1.0 HTTP+JSON text-only subset.",
+  "protocol_version": "0.3"
+}

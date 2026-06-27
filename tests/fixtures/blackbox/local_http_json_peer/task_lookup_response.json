@@ -1,0 +1,25 @@
+{
+  "id": "local-peer-task-1",
+  "contextId": "local-peer-context-1",
+  "status": {
+    "state": "TASK_STATE_COMPLETED"
+  },
+  "history": [],
+  "artifacts": [
+    {
+      "artifactId": "local-peer-artifact-1",
+      "parts": [
+        {
+          "text": "local peer result",
+          "mediaType": "text/plain"
+        }
+      ],
+      "metadata": {
+        "source": "local-http-json-peer"
+      }
+    }
+  ],
+  "metadata": {
+    "source": "local-http-json-peer"
+  }
+}

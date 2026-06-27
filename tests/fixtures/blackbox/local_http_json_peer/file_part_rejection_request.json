@@ -1,0 +1,16 @@
+{
+  "body": {
+    "message": {
+      "messageId": "local-file-rejection",
+      "role": "ROLE_USER",
+      "parts": [
+        {
+          "file": {
+            "name": "report.txt",
+            "mimeType": "text/plain"
+          }
+        }
+      ]
+    }
+  }
+}

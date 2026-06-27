@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "The SDK fixture rejected this text request",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "CONTENT_TYPE_NOT_SUPPORTED",
+        "domain": "a2a-protocol.org",
+        "metadata": {}
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "message": {
+    "messageId": "mixed-message-1",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "Summarize these rows",
+        "mediaType": "text/plain"
+      },
+      {
+        "type": "data",
+        "data": [
+          {
+            "name": "Ada",
+            "score": 10
+          },
+          {
+            "name": "Grace",
+            "score": 12
+          }
+        ]
+      }
+    ]
+  }
+}

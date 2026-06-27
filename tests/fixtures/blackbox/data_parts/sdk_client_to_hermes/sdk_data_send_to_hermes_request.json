@@ -1,0 +1,23 @@
+{
+  "message": {
+    "messageId": "sdk-client-data-to-hermes",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "data": {
+          "sdkClient": true,
+          "items": [
+            1,
+            2
+          ]
+        },
+        "metadata": {
+          "source": "official-sdk-harness"
+        }
+      }
+    ],
+    "metadata": {
+      "probe": "official-sdk-harness"
+    }
+  }
+}

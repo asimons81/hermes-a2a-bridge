@@ -1,0 +1,6 @@
+data: {"task":{"id":"sdk-task-stream-data-1","contextId":"sdk-context-stream-data-1","status":{"state":"TASK_STATE_SUBMITTED"}}}
+
+data: {"artifactUpdate":{"taskId":"sdk-task-stream-data-1","contextId":"sdk-context-stream-data-1","artifact":{"artifactId":"sdk-stream-artifact-data-1","parts":[{"data":{"streamedDataParts":[{"stream":true}],"ok":true}}]},"lastChunk":true}}
+
+data: {"statusUpdate":{"taskId":"sdk-task-stream-data-1","contextId":"sdk-context-stream-data-1","status":{"state":"TASK_STATE_COMPLETED"}}}
+

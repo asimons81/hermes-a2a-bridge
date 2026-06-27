@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "code": "replay_gap",
+  "error": "Requested replay cursor is no longer available because event history was pruned.",
+  "task_id": "task-1",
+  "last_event_id": 2,
+  "oldest_available_event_id": 8
+}

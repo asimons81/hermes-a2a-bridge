@@ -1,0 +1,15 @@
+{
+  "endpoint": "/v1/message:send",
+  "headers": {
+    "A2A-Version": "0.3",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "configuration": {"blocking": true},
+    "request": {
+      "content": [{"text": "legacy hello"}],
+      "message_id": "v03-message",
+      "role": "ROLE_USER"
+    }
+  }
+}

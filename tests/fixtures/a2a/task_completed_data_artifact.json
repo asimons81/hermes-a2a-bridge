@@ -1,0 +1,24 @@
+{
+  "id": "task-with-data-artifact",
+  "contextId": "ctx-data",
+  "status": {
+    "state": "TASK_STATE_COMPLETED"
+  },
+  "artifacts": [
+    {
+      "artifactId": "artifact-data-1",
+      "name": "result",
+      "parts": [
+        {
+          "data": {
+            "answer": 42,
+            "confidence": 0.9
+          }
+        }
+      ],
+      "metadata": {
+        "mediaType": "application/json"
+      }
+    }
+  ]
+}

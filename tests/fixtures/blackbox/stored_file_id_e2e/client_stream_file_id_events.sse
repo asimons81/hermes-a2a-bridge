@@ -1,0 +1,7 @@
+id: 1
+event: message
+data: {"task":{"id":"task-client-stream-file-id","contextId":"ctx-client-stream-file-id","status":{"state":"TASK_STATE_SUBMITTED"},"history":[{"role":"ROLE_USER","parts":[{"text":"stream staged file","mediaType":"text/plain"},{"file":{"fileId":"file_e2estreamabcdefghijklmnop","name":"report.txt","mimeType":"text/plain","sizeBytes":22,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","bytesAvailable":true}}],"messageId":"fixture-client-stream"}],"metadata":{"inputFileReferences":[{"fileId":"file_e2estreamabcdefghijklmnop","name":"report.txt","mimeType":"text/plain","sizeBytes":22,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","bytesAvailable":true,"source":"local"}]}}}
+
+id: 2
+event: message
+data: {"statusUpdate":{"taskId":"task-client-stream-file-id","contextId":"ctx-client-stream-file-id","status":{"state":"TASK_STATE_COMPLETED","message":{"role":"ROLE_AGENT","parts":[{"text":"stored-id e2e ok","mediaType":"text/plain"}],"messageId":"fixture-agent-message"}},"metadata":{"final":true}}}

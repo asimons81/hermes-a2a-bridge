@@ -1,0 +1,17 @@
+{
+  "message": {
+    "messageId": "tool-send-file-id",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "analyze this",
+        "mediaType": "text/plain"
+      },
+      {
+        "file": {
+          "fileId": "file_abcdefghijklmnopqrstuv"
+        }
+      }
+    ]
+  }
+}

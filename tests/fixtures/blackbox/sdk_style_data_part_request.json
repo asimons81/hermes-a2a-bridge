@@ -1,0 +1,17 @@
+{
+  "message": {
+    "messageId": "sdk-style-data-1",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "data": {
+          "sdk": true,
+          "version": "1.0"
+        }
+      }
+    ],
+    "metadata": {
+      "trace": "sdk-style-data"
+    }
+  }
+}

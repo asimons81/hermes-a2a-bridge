@@ -1,0 +1,22 @@
+{
+  "task": {
+    "id": "hermes-task-id",
+    "contextId": "hermes-context-id",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "message": {
+        "messageId": "hermes-response-message-id",
+        "contextId": "hermes-context-id",
+        "role": "ROLE_AGENT",
+        "parts": [{"text": "hermes sdk result", "mediaType": "text/plain"}]
+      }
+    },
+    "artifacts": [
+      {
+        "artifactId": "hermes-artifact-id",
+        "parts": [{"text": "hermes sdk result", "mediaType": "text/plain"}]
+      }
+    ],
+    "metadata": {"executor": {"status": "completed", "resultText": "hermes sdk result"}}
+  }
+}

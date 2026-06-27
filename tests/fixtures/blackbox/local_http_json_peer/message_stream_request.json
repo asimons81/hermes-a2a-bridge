@@ -1,0 +1,12 @@
+{
+  "message": {
+    "messageId": "00000000-0000-4000-8000-000000000002",
+    "role": "ROLE_USER",
+    "parts": [
+      {
+        "text": "stream local peer",
+        "mediaType": "text/plain"
+      }
+    ]
+  }
+}

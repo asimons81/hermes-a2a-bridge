@@ -1,0 +1,72 @@
+{
+  "task": {
+    "id": "task-client-send-file-id",
+    "contextId": "ctx-client-send-file-id",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "message": {
+        "role": "ROLE_AGENT",
+        "parts": [
+          {
+            "text": "stored-id e2e ok",
+            "mediaType": "text/plain"
+          }
+        ],
+        "messageId": "fixture-agent-message"
+      }
+    },
+    "history": [
+      {
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "summarize staged file",
+            "mediaType": "text/plain"
+          },
+          {
+            "file": {
+              "fileId": "file_e2eclientabcdefghijklmnop",
+              "name": "report.txt",
+              "mimeType": "text/plain",
+              "sizeBytes": 22,
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "bytesAvailable": true
+            }
+          }
+        ],
+        "messageId": "fixture-client-send"
+      }
+    ],
+    "artifacts": [
+      {
+        "artifactId": "artifact-client-send-file-id",
+        "parts": [
+          {
+            "text": "stored-id e2e ok",
+            "mediaType": "text/plain"
+          }
+        ],
+        "metadata": {
+          "mediaType": "text/plain"
+        }
+      }
+    ],
+    "metadata": {
+      "inputFileReferences": [
+        {
+          "fileId": "file_e2eclientabcdefghijklmnop",
+          "name": "report.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 22,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytesAvailable": true,
+          "source": "local"
+        }
+      ],
+      "executor": {
+        "status": "completed",
+        "resultText": "stored-id e2e ok"
+      }
+    }
+  }
+}

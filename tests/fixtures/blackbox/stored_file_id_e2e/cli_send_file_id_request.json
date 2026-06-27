@@ -1,0 +1,26 @@
+{
+  "method": "POST",
+  "path": "/message:send",
+  "headers": {
+    "Authorization": "[REDACTED]",
+    "A2A-Version": "1.0",
+    "Content-Type": "application/a2a+json"
+  },
+  "body": {
+    "message": {
+      "messageId": "fixture-cli-send",
+      "role": "ROLE_USER",
+      "parts": [
+        {
+          "text": "cli send stored id",
+          "mediaType": "text/plain"
+        },
+        {
+          "file": {
+            "fileId": "file_e2ecliclientabcdefghijk"
+          }
+        }
+      ]
+    }
+  }
+}

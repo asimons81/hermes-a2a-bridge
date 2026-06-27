@@ -1,0 +1,76 @@
+{
+  "name": "Hermes Agent",
+  "description": "A local Hermes Agent exposed through the Agent-to-Agent protocol.",
+  "version": "0.4.5",
+  "url": "http://127.0.0.1:8765",
+  "provider": {
+    "organization": "local",
+    "url": "http://127.0.0.1:8765"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "hermes-chat",
+      "name": "Hermes Chat",
+      "description": "Send a text task to the local Hermes Agent.",
+      "tags": [
+        "hermes",
+        "local-agent",
+        "text"
+      ]
+    }
+  ],
+  "additionalInterfaces": [
+    {
+      "url": "http://127.0.0.1:8765",
+      "transport": "HTTP+JSON"
+    }
+  ],
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:8765",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "preferredTransport": "HTTP+JSON",
+  "metadata": {
+    "hermesA2ABridge": {
+      "fileReferences": {
+        "supported": true,
+        "scope": "pre_staged_local_file_id_references_only",
+        "acceptedShapes": [
+          {
+            "file": {
+              "fileId": "file_..."
+            }
+          }
+        ],
+        "requiresAuth": true,
+        "requiresConfig": [
+          "parts.allow_file_parts",
+          "parts.allow_file_id_references"
+        ],
+        "unsupported": [
+          "inline_bytes",
+          "uri_file_references",
+          "remote_url_fetch",
+          "arbitrary_local_paths",
+          "uploads"
+        ]
+      }
+    }
+  }
+}

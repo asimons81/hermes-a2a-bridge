@@ -1,0 +1,47 @@
+{
+  "task": {
+    "id": "hermes-task-mixed-to-sdk",
+    "contextId": "hermes-context-mixed-to-sdk",
+    "status": {
+      "state": "TASK_STATE_COMPLETED"
+    },
+    "history": [
+      {
+        "role": "ROLE_USER",
+        "messageId": "sdk-client-mixed-to-hermes",
+        "parts": [
+          {
+            "text": "mixed",
+            "mediaType": "text/plain"
+          },
+          {
+            "data": [
+              {
+                "name": "Ada"
+              },
+              {
+                "name": "Grace"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "artifactId": "hermes-mixed-artifact-to-sdk",
+        "name": "result",
+        "parts": [
+          {
+            "data": {
+              "ok": true
+            }
+          }
+        ],
+        "metadata": {
+          "mediaType": "application/json"
+        }
+      }
+    ]
+  }
+}

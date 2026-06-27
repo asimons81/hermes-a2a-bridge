@@ -1,0 +1,18 @@
+{
+  "success": false,
+  "error": {
+    "code": 400,
+    "status": "INVALID_ARGUMENT",
+    "message": "Unsupported message: Stored file reference was not found.",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "INVALID_REQUEST",
+        "domain": "a2a-protocol.org",
+        "metadata": {
+          "bridgeCode": "file_not_found"
+        }
+      }
+    ]
+  }
+}

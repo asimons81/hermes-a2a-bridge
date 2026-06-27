@@ -1,0 +1,16 @@
+id: 1
+event: message
+data: {"task":{"id":"hermes-task-id","contextId":"hermes-context-id","status":{"state":"TASK_STATE_SUBMITTED"}}}
+
+id: 2
+event: message
+data: {"statusUpdate":{"taskId":"hermes-task-id","contextId":"hermes-context-id","status":{"state":"TASK_STATE_WORKING"},"metadata":{"final":false}}}
+
+id: 3
+event: message
+data: {"artifactUpdate":{"taskId":"hermes-task-id","contextId":"hermes-context-id","artifact":{"artifactId":"hermes-artifact-id","parts":[{"text":"hermes sdk result","mediaType":"text/plain"}]},"lastChunk":true,"metadata":{"final":true}}}
+
+id: 4
+event: message
+data: {"statusUpdate":{"taskId":"hermes-task-id","contextId":"hermes-context-id","status":{"state":"TASK_STATE_COMPLETED"},"metadata":{"final":true}}}
+

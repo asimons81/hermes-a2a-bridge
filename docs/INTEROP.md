@@ -25,7 +25,7 @@ This ledger records black-box A2A interoperability evidence for Hermes A2A Bridg
 - v0.4.4 Agent Card truthfulness pass: default and half-open Agent Cards remain quiet; when both stored-ID gates are enabled, `metadata.hermesA2ABridge.fileReferences` advertises only pre-staged local stored ID references and explicitly says inline bytes, URI references, remote fetch, arbitrary local paths, and uploads are unsupported. This is Hermes-specific metadata, not broad file-part conformance.
 - v0.4.5 official/external interop refresh: optional SDK tests pass against isolated `a2a-sdk` 1.1.0 and 1.0.3 interpreters; both SDK models reject nested `file` objects, including Hermes stored `fileId`; public no-credential HTTP+JSON stored-ID peer capture remains absent.
 - v0.4.6 release-candidate hardening audit: package metadata, docs wording, CLI/tool surfaces, fixture safety, config defaults, and smoke paths were checked without adding runtime protocol features.
-- Unreleased Peer Doctor pass: `hermes a2a doctor` and `a2a_doctor_peer` are metadata-only by default, fetching only a remote Agent Card and classifying likely compatibility with Hermes' HTTP+JSON 1.x subset. Explicit `--live-probe` / `live_probe: true` sends one small diagnostic text message, checks basic `message:send`, and attempts task lookup only if a task ID is returned. It does not send files, fetch files, stream, subscribe, cancel tasks, mutate registry state, implement `/v1`, implement JSON-RPC, or prove full A2A conformance.
+- Unreleased Peer Doctor pass: `hermes a2a doctor` and `a2a_doctor_peer` are metadata-only by default, fetching only a remote Agent Card and classifying likely compatibility with Hermes' HTTP+JSON 1.x subset. Explicit `--live-probe` / `live_probe: true` sends one small diagnostic text message, checks basic `message:send`, and attempts task lookup only if a task ID is returned. Explicit `--live-probe --stream-probe` / `live_probe: true, stream_probe: true` separately sends one small diagnostic text message through `message:stream` and reads a bounded SSE response. The probes do not send files, fetch files, subscribe, cancel tasks, mutate registry state, implement `/v1`, implement JSON-RPC, or prove full A2A conformance.
 
 ## Commands used
 
@@ -424,7 +424,7 @@ CLI behavior:
 - JSON-RPC runtime support: not implemented.
 - gRPC runtime support: not implemented.
 - Public tunneling or remote exposure: not implemented.
-- Peer Doctor live probe: opt-in only. It sends one tiny text diagnostic message, may check `GET /tasks/{id}` when a task ID is returned, and does not exercise files, streaming, subscribe, cancel, OAuth, JSON-RPC, `/v1`, or full conformance.
+- Peer Doctor live probe: opt-in only. It sends one tiny text diagnostic message and may check `GET /tasks/{id}` when a task ID is returned. Peer Doctor stream probe is separately opt-in and requires the live-probe toggle; it sends one tiny text diagnostic message through `message:stream`, reads at most 20 events for at most 10 seconds by default, and records event types plus terminal observation. These probes do not exercise files, subscribe, cancel, OAuth, JSON-RPC, `/v1`, or full conformance.
 
 ## Protocol matrix
 

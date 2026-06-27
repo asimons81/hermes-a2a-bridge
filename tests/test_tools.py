@@ -106,6 +106,10 @@ def test_doctor_tool_schema_exposes_opt_in_live_probe():
 
     assert properties["live_probe"]["type"] == "boolean"
     assert properties["live_probe"]["default"] is False
+    assert properties["stream_probe"]["type"] == "boolean"
+    assert properties["stream_probe"]["default"] is False
+    assert "stream_probe_timeout" in properties
+    assert "stream_probe_max_events" in properties
     assert "probe_message" in properties
     assert "file_ids" not in properties
     assert "stream" not in properties

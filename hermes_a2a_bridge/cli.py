@@ -82,6 +82,23 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
         "--live-probe-message",
         help="Diagnostic text to send only with --live-probe",
     )
+    doctor.add_argument(
+        "--stream-probe",
+        action="store_true",
+        help="Opt in to one bounded message:stream diagnostic probe; requires --live-probe",
+    )
+    doctor.add_argument(
+        "--stream-probe-timeout",
+        type=int,
+        default=None,
+        help="Maximum seconds to read stream probe events (default: 10)",
+    )
+    doctor.add_argument(
+        "--stream-probe-max-events",
+        type=int,
+        default=None,
+        help="Maximum SSE events to read during stream probe (default: 20)",
+    )
     doctor.add_argument("--json", action="store_true", help="Emit JSON only")
 
     registry = sub.add_parser("registry", help="Manage named remote agents")
@@ -486,7 +503,13 @@ def _render_files(command: str, result: dict[str, Any]) -> None:
 def _render_doctor(result: dict[str, Any]) -> None:
     _print(f"Peer Doctor: {result['status']}")
     live_probe = result.get("live_probe", {})
-    mode = "live-probed" if live_probe.get("attempted") else "metadata-only"
+    stream_probe = result.get("stream_probe", {})
+    if stream_probe.get("attempted"):
+        mode = "stream-probed"
+    elif live_probe.get("attempted"):
+        mode = "live-probed"
+    else:
+        mode = "metadata-only"
     _print(f"Mode: {mode}")
     if result.get("name"):
         _print(f"Name: {result['name']}")
@@ -517,6 +540,28 @@ def _render_doctor(result: dict[str, Any]) -> None:
             _print(f"Probe error: {_compact_probe_issue(error)}")
     else:
         _print("Live probe: disabled")
+    if stream_probe.get("enabled"):
+        if stream_probe.get("attempted"):
+            _print("Stream probe: enabled")
+            _print(f"Message stream: {'passed' if stream_probe.get('message_stream') else 'failed'}")
+            _print(f"Stream events: {stream_probe.get('events_received', 0)}")
+            if stream_probe.get("event_types"):
+                _print(f"Stream event types: {', '.join(stream_probe['event_types'])}")
+            if stream_probe.get("task_id"):
+                _print(f"Stream task ID: {stream_probe['task_id']}")
+            _print(f"Terminal observed: {'yes' if stream_probe.get('terminal_observed') else 'no'}")
+        else:
+            _print(f"Stream probe: skipped ({stream_probe.get('reason', 'not attempted')})")
+        _print(
+            "Streaming probe sends one diagnostic text message and reads a bounded SSE response. "
+            "It does not send files, fetch files, cancel, subscribe, or mutate registry state."
+        )
+        for warning in stream_probe.get("warnings", []):
+            _print(f"Stream warning: {_compact_probe_issue(warning)}")
+        for error in stream_probe.get("errors", []):
+            _print(f"Stream error: {_compact_probe_issue(error)}")
+    else:
+        _print("Stream probe: disabled")
     for error in result.get("errors", []):
         _print(f"Blocker: {error}")
     for warning in result.get("warnings", []):
@@ -627,6 +672,9 @@ async def _remote(args, store: Store) -> dict[str, Any]:
             token=token,
             timeout_seconds=args.timeout,
             live_probe=args.live_probe,
+            stream_probe=args.stream_probe,
+            stream_probe_timeout=args.stream_probe_timeout,
+            stream_probe_max_events=args.stream_probe_max_events,
             probe_message=args.live_probe_message,
         )
 

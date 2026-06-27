@@ -171,7 +171,7 @@ hermes a2a card [--json]
 hermes a2a serve [--host HOST] [--port PORT]
 hermes a2a token rotate [--show-token] [--json]
 hermes a2a discover URL [--json]
-hermes a2a doctor AGENT_OR_URL [--token TOKEN] [--timeout N] [--live-probe] [--live-probe-message TEXT] [--json]
+hermes a2a doctor AGENT_OR_URL [--token TOKEN] [--timeout N] [--live-probe] [--live-probe-message TEXT] [--stream-probe] [--stream-probe-timeout N] [--stream-probe-max-events N] [--json]
 hermes a2a registry add NAME URL [--token TOKEN] [--json]
 hermes a2a registry list [--json]
 hermes a2a registry remove NAME [--json]
@@ -212,6 +212,7 @@ hermes a2a subscribe TASK_ID --agent demo --json
 hermes a2a subscribe TASK_ID --agent demo --last-event-id 12 --json
 hermes a2a doctor demo --json
 hermes a2a doctor demo --live-probe --json
+hermes a2a doctor demo --live-probe --stream-probe --json
 ```
 
 Notes:
@@ -220,6 +221,7 @@ Notes:
 - `registry list --json` reports `hasToken` and never prints token values.
 - `doctor` is metadata-only by default: it fetches only the peer Agent Card and reports whether the advertised metadata looks compatible with Hermes' HTTP+JSON 1.x subset. It does not send messages, open streams, mutate registry state, fetch files, download remote URLs, or prove full A2A conformance.
 - `doctor --live-probe` is an explicit opt-in runtime check. It sends one small diagnostic text message, records whether `message:send` worked, and attempts `GET /tasks/{task_id}` only if the send response includes a task ID. The live probe does not send files, fetch files, cancel tasks, subscribe, stream, or prove full A2A conformance.
+- `doctor --live-probe --stream-probe` is a second explicit opt-in runtime check. It sends one diagnostic text message through `message:stream`, reads a bounded SSE response, and reports event count, event types, observed task ID, and terminal status observation. Defaults are 10 seconds and 20 events. `--stream-probe` without `--live-probe` is skipped with `live_probe_required`. The stream probe does not send files, fetch files, cancel tasks, subscribe, mutate registry state, or prove full A2A conformance; it only shows that the peer accepted a basic streaming diagnostic request and emitted a parseable bounded stream.
 - `send --json` returns the remote task plus `resultText` when the task message includes text; structured data artifacts are preserved in the task JSON.
 - `stream --json` and `subscribe --json` print one `{id,event,data}` stream envelope per line with no extra prose.
 - `send --file-id` and `stream --file-id` append stored file ID reference parts only, shaped as `{ "file": { "fileId": "file_..." } }`. The target server must explicitly enable both `parts.allow_file_parts: true` and `parts.allow_file_id_references: true`.
@@ -315,7 +317,7 @@ Behavior:
 - Successful tool responses use `success: true`.
 - Failed tool responses use `success: false` and redact bearer tokens.
 - Registry list responses report `hasToken` only.
-- `a2a_doctor_peer` accepts a registry name or URL and returns the same best-effort Agent Card compatibility diagnostic as `hermes a2a doctor`.
+- `a2a_doctor_peer` accepts a registry name or URL and returns the same best-effort Agent Card compatibility diagnostic as `hermes a2a doctor`. By default it is metadata-only. `live_probe: true` sends one diagnostic `message:send`; `live_probe: true, stream_probe: true` sends one diagnostic `message:stream` and reads a bounded SSE response. `stream_probe: true` without `live_probe: true` is reported as skipped and never streams.
 - Remote send/get/cancel responses include `task` and `resultText` when available. Structured artifacts are returned unchanged.
 - `a2a_send_message` accepts the existing string `message` argument, an optional structured `data` object or array argument, and optional `file_ids: ["file_..."]` stored file ID references.
 - Tool `file_ids` accepts stored Hermes file IDs only. It does not accept paths, URLs, URI references, inline bytes, raw file contents, or automatic local file staging. The target server must enable both stored-ID gates.
@@ -415,11 +417,12 @@ To exercise another HTTP+JSON server without saving credentials in output:
 hermes a2a discover https://agent.example/.well-known/agent-card.json --json
 hermes a2a doctor https://agent.example --json
 hermes a2a doctor https://agent.example --live-probe --json
+hermes a2a doctor https://agent.example --live-probe --stream-probe --json
 hermes a2a send https://agent.example "Hello" --token "$A2A_TOKEN" --json
 hermes a2a stream https://agent.example "Hello" --token "$A2A_TOKEN" --json
 ```
 
-Treat a successful Doctor result or exchange as implementation-specific interoperability evidence, not a full conformance result. Peer Doctor is best-effort metadata analysis by default; it checks selected interface, protocol version, likely authentication requirements, streaming metadata, task-route assumptions, and Hermes-specific stored-file-ID metadata without probing runtime operations. With `--live-probe`, it sends one tiny diagnostic message and may confirm task lookup when a task ID is returned; that still does not validate cancellation, streaming, file references, OAuth, JSON-RPC, `/v1`, or full A2A conformance.
+Treat a successful Doctor result or exchange as implementation-specific interoperability evidence, not a full conformance result. Peer Doctor is best-effort metadata analysis by default; it checks selected interface, protocol version, likely authentication requirements, streaming metadata, task-route assumptions, and Hermes-specific stored-file-ID metadata without probing runtime operations. With `--live-probe`, it sends one tiny diagnostic message and may confirm task lookup when a task ID is returned. With `--live-probe --stream-probe`, it also sends one tiny streaming diagnostic text message and reads a bounded parseable SSE response. These probes do not validate cancellation, subscribe, file references, OAuth, JSON-RPC, `/v1`, or full A2A conformance.
 
 Phase 10 local HTTP+JSON peer fixtures live under `tests/fixtures/blackbox/local_http_json_peer/`. They are deterministic test-only compatibility captures, not public real-world peer evidence.
 

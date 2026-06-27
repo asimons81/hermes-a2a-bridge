@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any
 from urllib.parse import urlparse
 
@@ -24,6 +25,15 @@ CAPABILITY_DEFAULTS = {
     "file_references": False,
 }
 DEFAULT_LIVE_PROBE_MESSAGE = "Hermes A2A Bridge diagnostic ping. No action required."
+DEFAULT_STREAM_PROBE_MESSAGE = "Hermes A2A Bridge streaming diagnostic ping. No action required."
+DEFAULT_STREAM_PROBE_TIMEOUT_SECONDS = 10
+DEFAULT_STREAM_PROBE_MAX_EVENTS = 20
+TERMINAL_STATE_VALUES = {
+    "TASK_STATE_COMPLETED",
+    "TASK_STATE_FAILED",
+    "TASK_STATE_CANCELED",
+    "TASK_STATE_REJECTED",
+}
 
 
 def agent_card_url(url: str) -> str:
@@ -47,6 +57,7 @@ def _empty_result(url: str, card_url: str) -> dict[str, Any]:
         "errors": [],
         "recommendations": [],
         "live_probe": {"enabled": False, "attempted": False},
+        "stream_probe": {"enabled": False, "attempted": False},
     }
 
 
@@ -213,6 +224,17 @@ def _set_probe_skipped(result: dict[str, Any], enabled: bool, reason: str) -> di
     return result
 
 
+def _set_stream_probe_skipped(result: dict[str, Any], enabled: bool, reason: str) -> dict[str, Any]:
+    if enabled:
+        result["stream_probe"] = {
+            "enabled": True,
+            "attempted": False,
+            "status": "skipped",
+            "reason": reason,
+        }
+    return result
+
+
 def _task_id(task: Any) -> str | None:
     if not isinstance(task, dict):
         return None
@@ -226,6 +248,47 @@ def _task_status(task: Any) -> str | None:
     status = task.get("status")
     if isinstance(status, dict) and isinstance(status.get("state"), str):
         return status["state"]
+    return None
+
+
+def _event_type(envelope: dict[str, Any]) -> str:
+    data = envelope.get("data")
+    if isinstance(data, dict):
+        if isinstance(data.get("task"), dict):
+            return "task"
+        if isinstance(data.get("statusUpdate"), dict):
+            return "statusUpdate"
+        if isinstance(data.get("artifactUpdate"), dict):
+            return "artifactUpdate"
+    return str(envelope.get("event") or "message")
+
+
+def _event_task_id(envelope: dict[str, Any]) -> str | None:
+    data = envelope.get("data")
+    if not isinstance(data, dict):
+        return None
+    task = data.get("task")
+    if isinstance(task, dict) and isinstance(task.get("id"), str):
+        return task["id"]
+    for key in ("statusUpdate", "artifactUpdate"):
+        update = data.get(key)
+        if isinstance(update, dict) and isinstance(update.get("taskId"), str):
+            return update["taskId"]
+    return None
+
+
+def _event_status(envelope: dict[str, Any]) -> str | None:
+    data = envelope.get("data")
+    if not isinstance(data, dict):
+        return None
+    task = data.get("task")
+    if isinstance(task, dict):
+        return _task_status(task)
+    update = data.get("statusUpdate")
+    if isinstance(update, dict):
+        status = update.get("status")
+        if isinstance(status, dict) and isinstance(status.get("state"), str):
+            return status["state"]
     return None
 
 
@@ -289,12 +352,80 @@ async def _run_live_probe(
     return probe
 
 
+async def _run_stream_probe(
+    endpoint: str,
+    *,
+    token: str | None,
+    probe_message: str,
+    timeout_seconds: int,
+    max_events: int,
+    session: aiohttp.ClientSession,
+) -> dict[str, Any]:
+    probe: dict[str, Any] = {
+        "enabled": True,
+        "attempted": True,
+        "status": "failed",
+        "message_stream": False,
+        "events_received": 0,
+        "event_types": [],
+        "task_id": None,
+        "terminal_observed": False,
+        "warnings": [],
+        "errors": [],
+    }
+    stream = client.stream_message(
+        endpoint,
+        probe_message,
+        token,
+        session=session,
+    )
+    started = time.monotonic()
+    try:
+        while probe["events_received"] < max_events:
+            remaining = timeout_seconds - (time.monotonic() - started)
+            if remaining <= 0:
+                probe["warnings"].append("Stream probe stopped after timeout.")
+                break
+            try:
+                event = await asyncio.wait_for(anext(stream), timeout=remaining)
+            except StopAsyncIteration:
+                probe["message_stream"] = True
+                break
+            probe["message_stream"] = True
+            probe["events_received"] += 1
+            probe["event_types"].append(_event_type(event))
+            probe["task_id"] = probe["task_id"] or _event_task_id(event)
+            status = _event_status(event)
+            if status in TERMINAL_STATE_VALUES:
+                probe["terminal_observed"] = True
+                break
+        if probe["events_received"] >= max_events and not probe["terminal_observed"]:
+            probe["warnings"].append("Stream probe stopped after max events.")
+        if probe["message_stream"] and not probe["events_received"]:
+            probe["warnings"].append("Stream probe received no events.")
+        probe["status"] = "passed" if not probe["warnings"] else "passed_with_warnings"
+    except asyncio.TimeoutError:
+        if probe["events_received"]:
+            probe["warnings"].append("Stream probe stopped after timeout.")
+            probe["status"] = "passed_with_warnings"
+        else:
+            probe["errors"].append({"message": "Stream probe timed out before receiving events."})
+    except Exception as exc:
+        probe["errors"].append(_error_payload(f"Diagnostic stream failed: {exc}", exc, token))
+    finally:
+        await stream.aclose()
+    return probe
+
+
 async def diagnose_peer(
     url: str,
     *,
     token: str | None = None,
     timeout_seconds: int | None = None,
     live_probe: bool = False,
+    stream_probe: bool = False,
+    stream_probe_timeout: int | None = None,
+    stream_probe_max_events: int | None = None,
     probe_message: str | None = None,
     session: aiohttp.ClientSession | None = None,
 ) -> dict[str, Any]:
@@ -302,6 +433,7 @@ async def diagnose_peer(
     card_url = agent_card_url(base_url)
     result = _empty_result(base_url, card_url)
     result["live_probe"] = {"enabled": bool(live_probe), "attempted": False}
+    result["stream_probe"] = {"enabled": bool(stream_probe), "attempted": False}
     own = session is None
     timeout = aiohttp.ClientTimeout(total=timeout_seconds or DEFAULT_TIMEOUT_SECONDS)
     session = session or aiohttp.ClientSession(timeout=timeout)
@@ -314,41 +446,76 @@ async def diagnose_peer(
             if response.status in {401, 403}:
                 result["errors"].append(f"Agent Card requires authentication (HTTP {response.status}).")
                 result["recommendations"].append("Provide a valid bearer token or save one in the registry entry.")
-                return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
+                return _set_stream_probe_skipped(
+                    _set_probe_skipped(result, live_probe, "agent_card_unavailable"),
+                    stream_probe,
+                    "live_probe_required" if stream_probe and not live_probe else "agent_card_unavailable",
+                )
             if response.status == 404:
                 result["errors"].append("Agent Card was not found at the well-known URL.")
                 result["recommendations"].append("Check the base URL or pass a direct Agent Card URL.")
-                return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
+                return _set_stream_probe_skipped(
+                    _set_probe_skipped(result, live_probe, "agent_card_unavailable"),
+                    stream_probe,
+                    "live_probe_required" if stream_probe and not live_probe else "agent_card_unavailable",
+                )
             if response.status >= 400:
                 result["errors"].append(f"Agent Card request failed with HTTP {response.status}.")
                 result["recommendations"].append("Check peer availability and whether discovery is public.")
-                return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
+                return _set_stream_probe_skipped(
+                    _set_probe_skipped(result, live_probe, "agent_card_unavailable"),
+                    stream_probe,
+                    "live_probe_required" if stream_probe and not live_probe else "agent_card_unavailable",
+                )
         try:
             card = json.loads(body)
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             result["errors"].append("Agent Card response was not valid JSON.")
             result["recommendations"].append("Ask the peer operator to serve valid JSON at the Agent Card URL.")
-            return _set_probe_skipped(result, live_probe, "invalid_agent_card")
+            return _set_stream_probe_skipped(
+                _set_probe_skipped(result, live_probe, "invalid_agent_card"),
+                stream_probe,
+                "live_probe_required" if stream_probe and not live_probe else "invalid_agent_card",
+            )
         card = _redact_value(card, token)
         if not isinstance(card, dict):
             result["errors"].append("Agent Card JSON was not an object.")
-            return _set_probe_skipped(result, live_probe, "invalid_agent_card")
+            return _set_stream_probe_skipped(
+                _set_probe_skipped(result, live_probe, "invalid_agent_card"),
+                stream_probe,
+                "live_probe_required" if stream_probe and not live_probe else "invalid_agent_card",
+            )
         if not card.get("name"):
             result["errors"].append("Agent Card is missing required name metadata.")
         if not _interfaces(card):
             result["errors"].append("Agent Card does not declare an endpoint.")
         if result["errors"]:
             result["ok"] = True
-            return _set_probe_skipped(result, live_probe, "invalid_agent_card")
+            return _set_stream_probe_skipped(
+                _set_probe_skipped(result, live_probe, "invalid_agent_card"),
+                stream_probe,
+                "live_probe_required" if stream_probe and not live_probe else "invalid_agent_card",
+            )
         result = analyze_agent_card(base_url, card_url, card)
         result["live_probe"] = {"enabled": bool(live_probe), "attempted": False}
+        result["stream_probe"] = {"enabled": bool(stream_probe), "attempted": False}
+        if stream_probe and not live_probe:
+            _set_stream_probe_skipped(result, True, "live_probe_required")
         if not live_probe:
             return result
         if result.get("status") not in {"compatible", "partially_compatible"}:
-            return _set_probe_skipped(result, live_probe, "metadata_unsupported")
+            return _set_stream_probe_skipped(
+                _set_probe_skipped(result, live_probe, "metadata_unsupported"),
+                stream_probe,
+                "metadata_unsupported",
+            )
         endpoint = _best_http_json_interface(card)
         if not endpoint or not endpoint.get("url"):
-            return _set_probe_skipped(result, live_probe, "metadata_unsupported")
+            return _set_stream_probe_skipped(
+                _set_probe_skipped(result, live_probe, "metadata_unsupported"),
+                stream_probe,
+                "metadata_unsupported",
+            )
         result["live_probe"] = await _run_live_probe(
             str(endpoint["url"]),
             token=token,
@@ -356,15 +523,35 @@ async def diagnose_peer(
             probe_message=probe_message or DEFAULT_LIVE_PROBE_MESSAGE,
             session=session,
         )
+        if not stream_probe:
+            return result
+        if not result.get("capabilities", {}).get("message_stream"):
+            return _set_stream_probe_skipped(result, True, "metadata_streaming_unsupported")
+        result["stream_probe"] = await _run_stream_probe(
+            str(endpoint["url"]),
+            token=token,
+            probe_message=probe_message or DEFAULT_STREAM_PROBE_MESSAGE,
+            timeout_seconds=max(1, stream_probe_timeout or DEFAULT_STREAM_PROBE_TIMEOUT_SECONDS),
+            max_events=max(1, stream_probe_max_events or DEFAULT_STREAM_PROBE_MAX_EVENTS),
+            session=session,
+        )
         return result
     except asyncio.TimeoutError:
         result["errors"].append("Agent Card request timed out.")
         result["recommendations"].append("Retry with a larger --timeout or check peer availability.")
-        return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
+        return _set_stream_probe_skipped(
+            _set_probe_skipped(result, live_probe, "agent_card_unavailable"),
+            stream_probe,
+            "live_probe_required" if stream_probe and not live_probe else "agent_card_unavailable",
+        )
     except aiohttp.ClientError as exc:
         result["errors"].append(redact_secrets(f"Agent Card request failed: {exc}", token))
         result["recommendations"].append("Check the peer URL and network path.")
-        return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
+        return _set_stream_probe_skipped(
+            _set_probe_skipped(result, live_probe, "agent_card_unavailable"),
+            stream_probe,
+            "live_probe_required" if stream_probe and not live_probe else "agent_card_unavailable",
+        )
     finally:
         if own:
             await session.close()

@@ -22,7 +22,7 @@ NAME = {
 TOOL_SCHEMAS = {
     "a2a_discover_agent": _schema("Fetch an A2A Agent Card.", {"url": URL}, ["url"]),
     "a2a_doctor_peer": _schema(
-        "Safely diagnose A2A peer compatibility from Agent Card metadata, with an explicit opt-in live probe.",
+        "Safely diagnose A2A peer compatibility from Agent Card metadata, with explicit opt-in live and streaming probes.",
         {
             "agent_url": URL,
             "token": TOKEN,
@@ -36,6 +36,23 @@ TOOL_SCHEMAS = {
                 "type": "string",
                 "minLength": 1,
                 "description": "Optional diagnostic text to send only when live_probe is true.",
+            },
+            "stream_probe": {
+                "type": "boolean",
+                "default": False,
+                "description": "Opt in to one bounded message:stream diagnostic probe. Requires live_probe true.",
+            },
+            "stream_probe_timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 60,
+                "description": "Maximum seconds to read stream probe events. Default is 10.",
+            },
+            "stream_probe_max_events": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum SSE events to read during stream probe. Default is 20.",
             },
         },
         ["agent_url"],

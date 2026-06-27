@@ -51,6 +51,10 @@ class ExecutorManager:
             process = self._processes.get(task_id)
             return process is not None and process.returncode is None
 
+    async def is_cancel_requested(self, task_id: str) -> bool:
+        async with self._lock:
+            return task_id in self._cancel_requested
+
     async def forget(self, task_id: str) -> None:
         async with self._lock:
             if task_id not in self._processes:
@@ -114,6 +118,7 @@ async def execute(
     argv = command_argv(config, prompt)
     timeout = int(executor.get("timeout_seconds", limits.get("task_timeout_seconds", 300)))
     process = None
+    canceled_by_manager = False
     try:
         process = await asyncio.create_subprocess_exec(
             *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -121,6 +126,8 @@ async def execute(
         if task_id is not None and manager is not None:
             await manager.register(task_id, process)
         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        if task_id is not None and manager is not None:
+            canceled_by_manager = await manager.is_cancel_requested(task_id)
     except FileNotFoundError as exc:
         raise ExecutorError(f"Hermes executor was not found: {argv[0]}") from exc
     except asyncio.TimeoutError as exc:
@@ -131,6 +138,8 @@ async def execute(
         if process is not None and task_id is not None and manager is not None:
             await manager.unregister(task_id, process)
     if process.returncode != 0:
+        if canceled_by_manager:
+            raise ExecutorCanceled("Task canceled while executor process was running")
         detail = redact_secrets(stderr.decode("utf-8", errors="replace")).strip()
         if detail:
             raise ExecutorError(

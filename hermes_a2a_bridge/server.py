@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from .auth import bearer_is_valid, redact_secrets
 from .config import database_path, validate_server_bind
-from .executor import ExecutorManager, execute
+from .executor import ExecutorCanceled, ExecutorManager, execute
 from . import files
 from ._version import __version__
 from .models import (
@@ -575,6 +575,20 @@ async def _run_task(app: web.Application, task: Task, text: str) -> Task:
             )
             if completed:
                 _persist_event(app, task.id, _artifact_event(current, artifact))
+        except ExecutorCanceled as exc:
+            canceled = store.cancel_task(task.id)
+            if canceled.status.state == TaskState.CANCELED:
+                message = redact_secrets(exc, config["server"].get("auth_token"))
+                store.update_task(
+                    task.id,
+                    TaskState.CANCELED,
+                    error=message,
+                    metadata={
+                        **store.get_task(task.id).metadata,
+                        "executor": {"status": "canceled", "error": message},
+                    },
+                    only_if_states={TaskState.CANCELED},
+                )
         except Exception as exc:
             safe = redact_secrets(exc, config["server"].get("auth_token"))
             store.update_task(
@@ -589,7 +603,7 @@ async def _run_task(app: web.Application, task: Task, text: str) -> Task:
             await asyncio.gather(heartbeat, return_exceptions=True)
             store.release_task_lease(task.id, owner_instance_id)
         final = store.get_task(task.id)
-        if final.status.state in {TaskState.COMPLETED, TaskState.FAILED}:
+        if final.status.state in {TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELED}:
             _persist_event(app, task.id, _status_event(final, final=True), terminal=True)
         return final
 

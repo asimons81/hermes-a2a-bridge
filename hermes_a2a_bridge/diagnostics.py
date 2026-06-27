@@ -1,4 +1,4 @@
-"""Safe peer compatibility diagnostics based on Agent Card metadata only."""
+"""Safe peer compatibility diagnostics based on Agent Card metadata by default."""
 
 from __future__ import annotations
 
@@ -10,7 +10,9 @@ from urllib.parse import urlparse
 import aiohttp
 
 from .auth import redact_secrets
+from . import client
 from .client import DEFAULT_TIMEOUT_SECONDS, require_http_url
+from .errors import ClientError
 
 
 CAPABILITY_DEFAULTS = {
@@ -21,6 +23,7 @@ CAPABILITY_DEFAULTS = {
     "tasks_subscribe": False,
     "file_references": False,
 }
+DEFAULT_LIVE_PROBE_MESSAGE = "Hermes A2A Bridge diagnostic ping. No action required."
 
 
 def agent_card_url(url: str) -> str:
@@ -43,6 +46,7 @@ def _empty_result(url: str, card_url: str) -> dict[str, Any]:
         "warnings": [],
         "errors": [],
         "recommendations": [],
+        "live_probe": {"enabled": False, "attempted": False},
     }
 
 
@@ -198,16 +202,106 @@ def analyze_agent_card(url: str, card_url: str, card: dict[str, Any]) -> dict[st
     return result
 
 
+def _set_probe_skipped(result: dict[str, Any], enabled: bool, reason: str) -> dict[str, Any]:
+    if enabled:
+        result["live_probe"] = {
+            "enabled": True,
+            "attempted": False,
+            "status": "skipped",
+            "reason": reason,
+        }
+    return result
+
+
+def _task_id(task: Any) -> str | None:
+    if not isinstance(task, dict):
+        return None
+    task_id = task.get("id")
+    return task_id if isinstance(task_id, str) and task_id else None
+
+
+def _task_status(task: Any) -> str | None:
+    if not isinstance(task, dict):
+        return None
+    status = task.get("status")
+    if isinstance(status, dict) and isinstance(status.get("state"), str):
+        return status["state"]
+    return None
+
+
+def _error_payload(message: str, exc: Exception, token: str | None) -> dict[str, Any]:
+    payload: dict[str, Any] = {"message": redact_secrets(message, token)}
+    if isinstance(exc, ClientError):
+        if exc.status is not None:
+            payload["http_status"] = exc.status
+        if isinstance(exc.payload, dict):
+            payload["details"] = _redact_value(exc.payload, token)
+    return payload
+
+
+async def _run_live_probe(
+    endpoint: str,
+    *,
+    token: str | None,
+    timeout_seconds: int | None,
+    probe_message: str,
+    session: aiohttp.ClientSession,
+) -> dict[str, Any]:
+    probe: dict[str, Any] = {
+        "enabled": True,
+        "attempted": True,
+        "message_send": False,
+        "task_id": None,
+        "task_status": None,
+        "task_get": None,
+        "status": "failed",
+        "warnings": [],
+        "errors": [],
+    }
+    try:
+        task = await client.send_message(
+            endpoint,
+            probe_message,
+            token,
+            timeout_seconds=timeout_seconds,
+            session=session,
+        )
+    except Exception as exc:
+        probe["errors"].append(_error_payload(f"Diagnostic message send failed: {exc}", exc, token))
+        return probe
+
+    probe["message_send"] = True
+    probe["task_id"] = _task_id(task)
+    probe["task_status"] = _task_status(task)
+    if not probe["task_id"]:
+        probe["status"] = "passed"
+        return probe
+
+    try:
+        looked_up = await client.get_task(endpoint, probe["task_id"], token, session=session)
+        probe["task_get"] = True
+        probe["task_status"] = _task_status(looked_up) or probe["task_status"]
+        probe["status"] = "passed"
+    except Exception as exc:
+        probe["task_get"] = False
+        probe["status"] = "passed_with_warnings"
+        probe["warnings"].append(_error_payload(f"Task lookup failed: {exc}", exc, token))
+    return probe
+
+
 async def diagnose_peer(
     url: str,
     *,
     token: str | None = None,
     timeout_seconds: int | None = None,
+    live_probe: bool = False,
+    probe_message: str | None = None,
     session: aiohttp.ClientSession | None = None,
 ) -> dict[str, Any]:
     base_url = require_http_url(url)
     card_url = agent_card_url(base_url)
     result = _empty_result(base_url, card_url)
+    result["live_probe"] = {"enabled": bool(live_probe), "attempted": False}
     own = session is None
     timeout = aiohttp.ClientTimeout(total=timeout_seconds or DEFAULT_TIMEOUT_SECONDS)
     session = session or aiohttp.ClientSession(timeout=timeout)
@@ -220,41 +314,57 @@ async def diagnose_peer(
             if response.status in {401, 403}:
                 result["errors"].append(f"Agent Card requires authentication (HTTP {response.status}).")
                 result["recommendations"].append("Provide a valid bearer token or save one in the registry entry.")
-                return result
+                return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
             if response.status == 404:
                 result["errors"].append("Agent Card was not found at the well-known URL.")
                 result["recommendations"].append("Check the base URL or pass a direct Agent Card URL.")
-                return result
+                return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
             if response.status >= 400:
                 result["errors"].append(f"Agent Card request failed with HTTP {response.status}.")
                 result["recommendations"].append("Check peer availability and whether discovery is public.")
-                return result
+                return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
         try:
             card = json.loads(body)
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
             result["errors"].append("Agent Card response was not valid JSON.")
             result["recommendations"].append("Ask the peer operator to serve valid JSON at the Agent Card URL.")
-            return result
+            return _set_probe_skipped(result, live_probe, "invalid_agent_card")
         card = _redact_value(card, token)
         if not isinstance(card, dict):
             result["errors"].append("Agent Card JSON was not an object.")
-            return result
+            return _set_probe_skipped(result, live_probe, "invalid_agent_card")
         if not card.get("name"):
             result["errors"].append("Agent Card is missing required name metadata.")
         if not _interfaces(card):
             result["errors"].append("Agent Card does not declare an endpoint.")
         if result["errors"]:
             result["ok"] = True
+            return _set_probe_skipped(result, live_probe, "invalid_agent_card")
+        result = analyze_agent_card(base_url, card_url, card)
+        result["live_probe"] = {"enabled": bool(live_probe), "attempted": False}
+        if not live_probe:
             return result
-        return analyze_agent_card(base_url, card_url, card)
+        if result.get("status") not in {"compatible", "partially_compatible"}:
+            return _set_probe_skipped(result, live_probe, "metadata_unsupported")
+        endpoint = _best_http_json_interface(card)
+        if not endpoint or not endpoint.get("url"):
+            return _set_probe_skipped(result, live_probe, "metadata_unsupported")
+        result["live_probe"] = await _run_live_probe(
+            str(endpoint["url"]),
+            token=token,
+            timeout_seconds=timeout_seconds,
+            probe_message=probe_message or DEFAULT_LIVE_PROBE_MESSAGE,
+            session=session,
+        )
+        return result
     except asyncio.TimeoutError:
         result["errors"].append("Agent Card request timed out.")
         result["recommendations"].append("Retry with a larger --timeout or check peer availability.")
-        return result
+        return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
     except aiohttp.ClientError as exc:
         result["errors"].append(redact_secrets(f"Agent Card request failed: {exc}", token))
         result["recommendations"].append("Check the peer URL and network path.")
-        return result
+        return _set_probe_skipped(result, live_probe, "agent_card_unavailable")
     finally:
         if own:
             await session.close()

@@ -8,7 +8,7 @@ from aiohttp.test_utils import TestServer
 
 from hermes_a2a_bridge import cli, tools
 from hermes_a2a_bridge.cli import a2a_command
-from hermes_a2a_bridge.diagnostics import analyze_agent_card, diagnose_peer
+from hermes_a2a_bridge.diagnostics import DEFAULT_LIVE_PROBE_MESSAGE, analyze_agent_card, diagnose_peer
 
 
 def _card(**overrides):
@@ -178,7 +178,205 @@ async def test_diagnose_fetches_only_agent_card():
         await server.close()
 
     assert result["status"] == "compatible"
+    assert result["live_probe"] == {"enabled": False, "attempted": False}
     assert seen == [("GET", "/.well-known/agent-card.json")]
+
+
+async def test_live_probe_sends_one_diagnostic_message_and_gets_task():
+    seen = []
+
+    async def card(request):
+        base = f"{request.scheme}://{request.host}"
+        seen.append((request.method, request.path))
+        return web.json_response(_card(url=base, supportedInterfaces=[{
+            "url": base,
+            "protocolBinding": "HTTP+JSON",
+            "protocolVersion": "1.0",
+        }]))
+
+    async def send(request):
+        body = await request.json()
+        seen.append((request.method, request.path, body))
+        return web.json_response({
+            "task": {
+                "id": "task-live-probe",
+                "status": {"state": "TASK_STATE_COMPLETED"},
+            }
+        })
+
+    async def get_task(request):
+        seen.append((request.method, request.path))
+        return web.json_response({
+            "id": request.match_info["task_id"],
+            "status": {"state": "TASK_STATE_COMPLETED"},
+        })
+
+    async def forbidden(request):
+        raise AssertionError(f"unexpected live probe route: {request.method} {request.path}")
+
+    app = web.Application()
+    app.router.add_get("/.well-known/agent-card.json", card)
+    app.router.add_post("/message:send", send)
+    app.router.add_get("/tasks/{task_id}", get_task)
+    app.router.add_post("/message:stream", forbidden)
+    app.router.add_post("/tasks/{task_id}:cancel", forbidden)
+    app.router.add_post("/tasks/{task_id}:subscribe", forbidden)
+    app.router.add_route("*", "/files/{tail:.*}", forbidden)
+    server = TestServer(app)
+    await server.start_server()
+    try:
+        result = await diagnose_peer(str(server.make_url("")).rstrip("/"), live_probe=True)
+    finally:
+        await server.close()
+
+    assert result["status"] == "compatible"
+    probe = result["live_probe"]
+    assert probe["enabled"] is True
+    assert probe["attempted"] is True
+    assert probe["message_send"] is True
+    assert probe["task_id"] == "task-live-probe"
+    assert probe["task_get"] is True
+    assert probe["status"] == "passed"
+    assert [item[:2] for item in seen] == [
+        ("GET", "/.well-known/agent-card.json"),
+        ("POST", "/message:send"),
+        ("GET", "/tasks/task-live-probe"),
+    ]
+    parts = seen[1][2]["message"]["parts"]
+    assert parts == [{"text": DEFAULT_LIVE_PROBE_MESSAGE, "mediaType": "text/plain"}]
+    assert "file" not in json.dumps(seen[1][2])
+
+
+async def test_live_probe_uses_custom_message_and_redacts_token():
+    seen = {}
+
+    async def card(request):
+        base = f"{request.scheme}://{request.host}"
+        assert request.headers["Authorization"] == "Bearer live-secret-token"
+        return web.json_response(_card(url=base, supportedInterfaces=[{
+            "url": base,
+            "protocolBinding": "HTTP+JSON",
+            "protocolVersion": "1.0",
+        }]))
+
+    async def send(request):
+        seen["authorization"] = request.headers.get("Authorization")
+        seen["body"] = await request.json()
+        return web.json_response({
+            "task": {
+                "id": "task-token",
+                "status": {
+                    "state": "TASK_STATE_COMPLETED",
+                    "message": {"parts": [{"text": "live-secret-token"}]},
+                },
+            }
+        })
+
+    app = web.Application()
+    app.router.add_get("/.well-known/agent-card.json", card)
+    app.router.add_post("/message:send", send)
+    server = TestServer(app)
+    await server.start_server()
+    try:
+        result = await diagnose_peer(
+            str(server.make_url("")).rstrip("/"),
+            token="live-secret-token",
+            live_probe=True,
+            probe_message="custom diagnostic",
+        )
+    finally:
+        await server.close()
+
+    assert seen["authorization"] == "Bearer live-secret-token"
+    assert seen["body"]["message"]["parts"][0]["text"] == "custom diagnostic"
+    serialized = json.dumps(result)
+    assert "live-secret-token" not in serialized
+
+
+async def test_live_probe_skips_unsupported_invalid_and_missing_cards():
+    calls = []
+
+    async def unsupported_card(request):
+        calls.append((request.method, request.path))
+        return web.json_response(_card(
+            preferredTransport="JSONRPC",
+            supportedInterfaces=[{
+                "url": f"{request.scheme}://{request.host}/rpc",
+                "protocolBinding": "JSONRPC",
+                "protocolVersion": "1.0",
+            }],
+        ))
+
+    async def invalid(request):
+        calls.append((request.method, request.path))
+        return web.Response(text="{not-json", content_type="application/json")
+
+    async def forbidden(request):
+        raise AssertionError("live probe should not touch runtime routes")
+
+    app = web.Application()
+    app.router.add_get("/unsupported/.well-known/agent-card.json", unsupported_card)
+    app.router.add_get("/invalid/.well-known/agent-card.json", invalid)
+    app.router.add_route("*", "/{tail:.*}", forbidden)
+    server = TestServer(app)
+    await server.start_server()
+    try:
+        base = str(server.make_url("")).rstrip("/")
+        unsupported = await diagnose_peer(f"{base}/unsupported", live_probe=True)
+        invalid_result = await diagnose_peer(f"{base}/invalid", live_probe=True)
+        missing = await diagnose_peer(f"{base}/missing", live_probe=True)
+    finally:
+        await server.close()
+
+    assert unsupported["live_probe"]["reason"] == "metadata_unsupported"
+    assert invalid_result["live_probe"]["reason"] == "invalid_agent_card"
+    assert missing["live_probe"]["reason"] == "agent_card_unavailable"
+    assert all(item[0] == "GET" and item[1].endswith("/.well-known/agent-card.json") for item in calls)
+
+
+async def test_live_probe_send_and_task_lookup_failures_are_structured():
+    async def run(send_status: int, send_payload: dict, *, task_status: int = 200, task_payload: dict | None = None):
+        async def card(request):
+            base = f"{request.scheme}://{request.host}"
+            return web.json_response(_card(url=base, supportedInterfaces=[{
+                "url": base,
+                "protocolBinding": "HTTP+JSON",
+                "protocolVersion": "1.0",
+            }]))
+
+        async def send(request):
+            return web.json_response(send_payload, status=send_status)
+
+        async def get_task(request):
+            return web.json_response(task_payload or {"error": "lookup failed"}, status=task_status)
+
+        app = web.Application()
+        app.router.add_get("/.well-known/agent-card.json", card)
+        app.router.add_post("/message:send", send)
+        app.router.add_get("/tasks/{task_id}", get_task)
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            return await diagnose_peer(str(server.make_url("")).rstrip("/"), live_probe=True)
+        finally:
+            await server.close()
+
+    failed_send = await run(500, {"error": "send failed"})
+    assert failed_send["live_probe"]["status"] == "failed"
+    assert failed_send["live_probe"]["message_send"] is False
+    assert "send failed" in json.dumps(failed_send["live_probe"]["errors"])
+
+    failed_lookup = await run(
+        200,
+        {"task": {"id": "task-get-fail", "status": {"state": "TASK_STATE_SUBMITTED"}}},
+        task_status=503,
+        task_payload={"error": "lookup failed"},
+    )
+    assert failed_lookup["live_probe"]["message_send"] is True
+    assert failed_lookup["live_probe"]["task_id"] == "task-get-fail"
+    assert failed_lookup["live_probe"]["task_get"] is False
+    assert failed_lookup["live_probe"]["status"] == "passed_with_warnings"
+    assert "lookup failed" in json.dumps(failed_lookup["live_probe"]["warnings"])
 
 
 def test_cli_doctor_json_and_human_output(config, tmp_path, monkeypatch, capsys):
@@ -187,10 +385,12 @@ def test_cli_doctor_json_and_human_output(config, tmp_path, monkeypatch, capsys)
 
     save_config(config)
 
-    async def fake_doctor(url, token=None, timeout_seconds=None):
+    async def fake_doctor(url, token=None, timeout_seconds=None, live_probe=False, probe_message=None):
         assert url == "http://remote.test"
         assert token == "test-secret-token"
         assert timeout_seconds == 10
+        assert live_probe is False
+        assert probe_message is None
         return {
             "ok": True,
             "status": "compatible",
@@ -209,6 +409,7 @@ def test_cli_doctor_json_and_human_output(config, tmp_path, monkeypatch, capsys)
             "warnings": [],
             "errors": [],
             "recommendations": ["Send a small text request next."],
+            "live_probe": {"enabled": False, "attempted": False},
         }
 
     monkeypatch.setattr(cli, "diagnose_peer", fake_doctor)
@@ -218,6 +419,8 @@ def test_cli_doctor_json_and_human_output(config, tmp_path, monkeypatch, capsys)
         agent="http://remote.test",
         token="test-secret-token",
         timeout=10,
+        live_probe=False,
+        live_probe_message=None,
         json=True,
     )
     assert a2a_command(json_args) == 0
@@ -229,15 +432,83 @@ def test_cli_doctor_json_and_human_output(config, tmp_path, monkeypatch, capsys)
     assert a2a_command(json_args) == 0
     output = capsys.readouterr().out
     assert "Peer Doctor: compatible" in output
+    assert "Mode: metadata-only" in output
+    assert "Live probe: disabled" in output
     assert "message_send" in output
     assert "test-secret-token" not in output
 
 
+def test_cli_live_probe_json_and_human_output(config, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
+    from hermes_a2a_bridge.config import save_config
+
+    save_config(config)
+
+    async def fake_doctor(url, token=None, timeout_seconds=None, live_probe=False, probe_message=None):
+        assert live_probe is True
+        assert probe_message == "custom ping"
+        return {
+            "ok": True,
+            "status": "compatible",
+            "url": url,
+            "agent_card_url": f"{url}/.well-known/agent-card.json",
+            "name": "Remote",
+            "protocol": {"binding": "HTTP+JSON", "version": "1.0"},
+            "capabilities": {
+                "message_send": True,
+                "message_stream": False,
+                "tasks_get": True,
+                "tasks_cancel": True,
+                "tasks_subscribe": False,
+                "file_references": False,
+            },
+            "warnings": [],
+            "errors": [],
+            "recommendations": [],
+            "live_probe": {
+                "enabled": True,
+                "attempted": True,
+                "message_send": True,
+                "task_id": "task-cli",
+                "task_get": True,
+                "status": "passed",
+                "warnings": [],
+                "errors": [],
+            },
+        }
+
+    monkeypatch.setattr(cli, "diagnose_peer", fake_doctor)
+    args = argparse.Namespace(
+        a2a_command="doctor",
+        agent="http://remote.test",
+        token=None,
+        timeout=None,
+        live_probe=True,
+        live_probe_message="custom ping",
+        json=True,
+    )
+    assert a2a_command(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["live_probe"]["enabled"] is True
+    assert payload["live_probe"]["attempted"] is True
+    assert payload["live_probe"]["status"] == "passed"
+
+    args.json = False
+    assert a2a_command(args) == 0
+    output = capsys.readouterr().out
+    assert "Mode: live-probed" in output
+    assert "Message send: passed" in output
+    assert "Task lookup: passed" in output
+    assert "does not send files, fetch files, cancel tasks, or stream" in output
+
+
 async def test_tool_doctor_peer_returns_structured_diagnostic(config, monkeypatch):
-    async def fake_doctor(url, token=None, timeout_seconds=None):
+    async def fake_doctor(url, token=None, timeout_seconds=None, live_probe=False, probe_message=None):
         assert url == "http://remote.test"
         assert token == "tool-token"
         assert timeout_seconds == 5
+        assert live_probe is False
+        assert probe_message is None
         return {
             "ok": True,
             "status": "partially_compatible",
@@ -256,6 +527,7 @@ async def test_tool_doctor_peer_returns_structured_diagnostic(config, monkeypatc
             "warnings": ["Bearer tool-token was not echoed."],
             "errors": [],
             "recommendations": [],
+            "live_probe": {"enabled": False, "attempted": False},
         }
 
     monkeypatch.setattr(tools, "diagnose_peer", fake_doctor)
@@ -267,4 +539,50 @@ async def test_tool_doctor_peer_returns_structured_diagnostic(config, monkeypatc
     payload = json.loads(raw)
     assert payload["success"] is True
     assert payload["status"] == "partially_compatible"
+    assert payload["live_probe"] == {"enabled": False, "attempted": False}
+    assert "tool-token" not in raw
+
+
+async def test_tool_doctor_peer_live_probe_true(config, monkeypatch):
+    async def fake_doctor(url, token=None, timeout_seconds=None, live_probe=False, probe_message=None):
+        assert url == "http://remote.test"
+        assert token == "tool-token"
+        assert timeout_seconds == 5
+        assert live_probe is True
+        assert probe_message == "tool ping"
+        return {
+            "ok": True,
+            "status": "compatible",
+            "url": url,
+            "agent_card_url": f"{url}/.well-known/agent-card.json",
+            "name": "Remote",
+            "protocol": {"binding": "HTTP+JSON", "version": "1.0"},
+            "capabilities": {"message_send": True},
+            "warnings": [],
+            "errors": [],
+            "recommendations": [],
+            "live_probe": {
+                "enabled": True,
+                "attempted": True,
+                "message_send": True,
+                "task_id": "task-tool",
+                "task_get": True,
+                "status": "passed",
+                "warnings": [],
+                "errors": [],
+            },
+        }
+
+    monkeypatch.setattr(tools, "diagnose_peer", fake_doctor)
+    raw = await tools.a2a_doctor_peer({
+        "agent_url": "http://remote.test",
+        "token": "tool-token",
+        "timeout_seconds": 5,
+        "live_probe": True,
+        "probe_message": "tool ping",
+    })
+    payload = json.loads(raw)
+    assert payload["success"] is True
+    assert payload["live_probe"]["enabled"] is True
+    assert payload["live_probe"]["attempted"] is True
     assert "tool-token" not in raw

@@ -107,7 +107,16 @@ async def a2a_discover_agent(args: dict, **kwargs):
 @safe_handler
 async def a2a_doctor_peer(args: dict, **kwargs):
     base, token = _resolve(args["agent_url"], args.get("token"))
-    return _redact_value(await diagnose_peer(base, token=token, timeout_seconds=args.get("timeout_seconds")), token)
+    return _redact_value(
+        await diagnose_peer(
+            base,
+            token=token,
+            timeout_seconds=args.get("timeout_seconds"),
+            live_probe=bool(args.get("live_probe", False)),
+            probe_message=args.get("probe_message"),
+        ),
+        token,
+    )
 
 
 @safe_handler

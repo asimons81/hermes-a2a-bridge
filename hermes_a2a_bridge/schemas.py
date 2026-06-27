@@ -22,11 +22,21 @@ NAME = {
 TOOL_SCHEMAS = {
     "a2a_discover_agent": _schema("Fetch an A2A Agent Card.", {"url": URL}, ["url"]),
     "a2a_doctor_peer": _schema(
-        "Safely diagnose A2A peer compatibility from Agent Card metadata only.",
+        "Safely diagnose A2A peer compatibility from Agent Card metadata, with an explicit opt-in live probe.",
         {
             "agent_url": URL,
             "token": TOKEN,
             "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 3600},
+            "live_probe": {
+                "type": "boolean",
+                "default": False,
+                "description": "Opt in to one tiny diagnostic message send after compatible metadata is found.",
+            },
+            "probe_message": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Optional diagnostic text to send only when live_probe is true.",
+            },
         },
         ["agent_url"],
     ),

@@ -100,6 +100,18 @@ def test_send_message_tool_schema_exposes_only_stored_file_ids():
         assert forbidden not in properties
 
 
+def test_doctor_tool_schema_exposes_opt_in_live_probe():
+    schema = schemas.TOOL_SCHEMAS["a2a_doctor_peer"]["parameters"]
+    properties = schema["properties"]
+
+    assert properties["live_probe"]["type"] == "boolean"
+    assert properties["live_probe"]["default"] is False
+    assert "probe_message" in properties
+    assert "file_ids" not in properties
+    assert "stream" not in properties
+    assert "cancel" not in properties
+
+
 def test_send_message_tool_code_does_not_read_local_files_for_file_ids():
     source = inspect.getsource(tools)
     assert ".read_bytes(" not in source

@@ -73,6 +73,15 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     doctor.add_argument("agent", help="Remote registry name, base URL, or Agent Card URL")
     doctor.add_argument("--token", help="Optional bearer token override")
     doctor.add_argument("--timeout", type=int, default=None, help="Total Agent Card request timeout in seconds")
+    doctor.add_argument(
+        "--live-probe",
+        action="store_true",
+        help="Opt in to one tiny diagnostic message send after compatible metadata is found",
+    )
+    doctor.add_argument(
+        "--live-probe-message",
+        help="Diagnostic text to send only with --live-probe",
+    )
     doctor.add_argument("--json", action="store_true", help="Emit JSON only")
 
     registry = sub.add_parser("registry", help="Manage named remote agents")
@@ -476,6 +485,9 @@ def _render_files(command: str, result: dict[str, Any]) -> None:
 
 def _render_doctor(result: dict[str, Any]) -> None:
     _print(f"Peer Doctor: {result['status']}")
+    live_probe = result.get("live_probe", {})
+    mode = "live-probed" if live_probe.get("attempted") else "metadata-only"
+    _print(f"Mode: {mode}")
     if result.get("name"):
         _print(f"Name: {result['name']}")
     protocol = result.get("protocol", {})
@@ -486,12 +498,37 @@ def _render_doctor(result: dict[str, Any]) -> None:
         if enabled
     ]
     _print(f"Usable: {', '.join(usable) if usable else 'none detected'}")
+    if live_probe.get("enabled"):
+        if live_probe.get("attempted"):
+            _print("Live probe: enabled")
+            _print(f"Message send: {'passed' if live_probe.get('message_send') else 'failed'}")
+            if live_probe.get("task_id"):
+                _print(f"Task ID: {live_probe['task_id']}")
+            if live_probe.get("task_status"):
+                _print(f"Task status: {live_probe['task_status']}")
+            if live_probe.get("task_get") is not None:
+                _print(f"Task lookup: {'passed' if live_probe.get('task_get') else 'failed'}")
+        else:
+            _print(f"Live probe: skipped ({live_probe.get('reason', 'not attempted')})")
+        _print("Live probe sends a tiny diagnostic message. It does not send files, fetch files, cancel tasks, or stream.")
+        for warning in live_probe.get("warnings", []):
+            _print(f"Probe warning: {_compact_probe_issue(warning)}")
+        for error in live_probe.get("errors", []):
+            _print(f"Probe error: {_compact_probe_issue(error)}")
+    else:
+        _print("Live probe: disabled")
     for error in result.get("errors", []):
         _print(f"Blocker: {error}")
     for warning in result.get("warnings", []):
         _print(f"Warning: {warning}")
     if result.get("recommendations"):
         _print(f"Next: {result['recommendations'][0]}")
+
+
+def _compact_probe_issue(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("message") or value)
+    return str(value)
 
 
 def _local_files(store: Store, config: dict[str, Any], args) -> dict[str, Any]:
@@ -585,7 +622,13 @@ async def _remote(args, store: Store) -> dict[str, Any]:
         return _format_agent(await client.fetch_agent_card(args.url))
     if command == "doctor":
         base, token = _resolved(store, args.agent, getattr(args, "token", None))
-        return await diagnose_peer(base, token=token, timeout_seconds=args.timeout)
+        return await diagnose_peer(
+            base,
+            token=token,
+            timeout_seconds=args.timeout,
+            live_probe=args.live_probe,
+            probe_message=args.live_probe_message,
+        )
 
     base, token = _resolved(store, args.agent, getattr(args, "token", None))
     card = await client.fetch_agent_card(base)

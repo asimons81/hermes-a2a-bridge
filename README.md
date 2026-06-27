@@ -171,7 +171,7 @@ hermes a2a card [--json]
 hermes a2a serve [--host HOST] [--port PORT]
 hermes a2a token rotate [--show-token] [--json]
 hermes a2a discover URL [--json]
-hermes a2a doctor AGENT_OR_URL [--token TOKEN] [--timeout N] [--json]
+hermes a2a doctor AGENT_OR_URL [--token TOKEN] [--timeout N] [--live-probe] [--live-probe-message TEXT] [--json]
 hermes a2a registry add NAME URL [--token TOKEN] [--json]
 hermes a2a registry list [--json]
 hermes a2a registry remove NAME [--json]
@@ -211,13 +211,15 @@ hermes a2a stream demo "Summarize the staged report" --file-id file_abcdefghijkl
 hermes a2a subscribe TASK_ID --agent demo --json
 hermes a2a subscribe TASK_ID --agent demo --last-event-id 12 --json
 hermes a2a doctor demo --json
+hermes a2a doctor demo --live-probe --json
 ```
 
 Notes:
 
 - `--json` prints JSON only.
 - `registry list --json` reports `hasToken` and never prints token values.
-- `doctor` fetches only the peer Agent Card and reports whether the advertised metadata looks compatible with Hermes' HTTP+JSON 1.x subset. It does not send messages, open streams, mutate registry state, fetch files, download remote URLs, or prove full A2A conformance.
+- `doctor` is metadata-only by default: it fetches only the peer Agent Card and reports whether the advertised metadata looks compatible with Hermes' HTTP+JSON 1.x subset. It does not send messages, open streams, mutate registry state, fetch files, download remote URLs, or prove full A2A conformance.
+- `doctor --live-probe` is an explicit opt-in runtime check. It sends one small diagnostic text message, records whether `message:send` worked, and attempts `GET /tasks/{task_id}` only if the send response includes a task ID. The live probe does not send files, fetch files, cancel tasks, subscribe, stream, or prove full A2A conformance.
 - `send --json` returns the remote task plus `resultText` when the task message includes text; structured data artifacts are preserved in the task JSON.
 - `stream --json` and `subscribe --json` print one `{id,event,data}` stream envelope per line with no extra prose.
 - `send --file-id` and `stream --file-id` append stored file ID reference parts only, shaped as `{ "file": { "fileId": "file_..." } }`. The target server must explicitly enable both `parts.allow_file_parts: true` and `parts.allow_file_id_references: true`.
@@ -412,11 +414,12 @@ To exercise another HTTP+JSON server without saving credentials in output:
 ```bash
 hermes a2a discover https://agent.example/.well-known/agent-card.json --json
 hermes a2a doctor https://agent.example --json
+hermes a2a doctor https://agent.example --live-probe --json
 hermes a2a send https://agent.example "Hello" --token "$A2A_TOKEN" --json
 hermes a2a stream https://agent.example "Hello" --token "$A2A_TOKEN" --json
 ```
 
-Treat a successful Doctor result or exchange as implementation-specific interoperability evidence, not a full conformance result. Peer Doctor is best-effort metadata analysis; it checks selected interface, protocol version, likely authentication requirements, streaming metadata, task-route assumptions, and Hermes-specific stored-file-ID metadata without probing runtime operations.
+Treat a successful Doctor result or exchange as implementation-specific interoperability evidence, not a full conformance result. Peer Doctor is best-effort metadata analysis by default; it checks selected interface, protocol version, likely authentication requirements, streaming metadata, task-route assumptions, and Hermes-specific stored-file-ID metadata without probing runtime operations. With `--live-probe`, it sends one tiny diagnostic message and may confirm task lookup when a task ID is returned; that still does not validate cancellation, streaming, file references, OAuth, JSON-RPC, `/v1`, or full A2A conformance.
 
 Phase 10 local HTTP+JSON peer fixtures live under `tests/fixtures/blackbox/local_http_json_peer/`. They are deterministic test-only compatibility captures, not public real-world peer evidence.
 

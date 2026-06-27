@@ -1,5 +1,7 @@
 # Hermes A2A Bridge
 
+[![CI](https://github.com/asimons81/hermes-a2a-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/asimons81/hermes-a2a-bridge/actions/workflows/ci.yml)
+
 > MCP lets agents use tools. A2A lets agents call other agents. Hermes A2A Bridge gives Hermes the second half.
 
 `hermes-a2a-bridge` is a thin, local-first bridge for HTTP+JSON agent calls with text parts and bounded structured JSON data parts. It lets Hermes discover named remote agents and exposes Hermes itself through a deliberately small A2A-shaped surface. It does not claim full A2A compliance.
@@ -522,4 +524,10 @@ Event IDs belong to one SQLite database. No external broker is required: active 
 ```bash
 python -m pip install -e ".[test]"
 python -m pytest
+python -m compileall -q hermes_a2a_bridge tests
+python -m build
 ```
+
+Optional official SDK tests require an explicitly configured isolated `A2A_SDK_PYTHON` interpreter and skip during normal runs when it is not set.
+
+Do not broaden file support or make full A2A conformance claims without a design pass, tests, and docs.

@@ -2,6 +2,12 @@
 
 This checklist is for the v0.4.6 release artifact verification pass. It is packaging guidance only and does not expand runtime protocol support.
 
+GitHub Actions now mirrors the local verification paths:
+
+- `CI` runs tests, editable install verification, and compile checks on pull requests, pushes to `main`, and manual dispatch.
+- `Package` builds the wheel and sdist on pull requests, pushes to `main`, and manual dispatch.
+- `Release Check` is manual-only and rebuilds artifacts, installs the wheel into a temporary virtual environment, and runs import, version, module, and entry-point smoke checks without publishing.
+
 ## Baseline
 
 - Confirm the project directory is not a Git repository unless the user explicitly requests initialization.

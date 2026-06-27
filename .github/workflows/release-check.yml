@@ -1,0 +1,78 @@
+name: Release Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-check:
+    name: Validate release artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install package editable with test dependencies
+        run: python -m pip install -e ".[test]"
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Compile sources and tests
+        run: python -m compileall -q hermes_a2a_bridge tests
+
+      - name: Install build
+        run: python -m pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Install wheel in temporary venv and smoke test
+        run: |
+          python - <<'PY'
+          import importlib.metadata as metadata
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          wheel_paths = sorted(Path("dist").glob("*.whl"))
+          sdist_paths = sorted(Path("dist").glob("*.tar.gz"))
+          if len(wheel_paths) != 1 or len(sdist_paths) != 1:
+              raise SystemExit(f"expected one wheel and one sdist, got wheels={wheel_paths}, sdists={sdist_paths}")
+
+          with tempfile.TemporaryDirectory() as tmp:
+              venv_dir = Path(tmp) / "wheel-smoke"
+              subprocess.run([sys.executable, "-m", "venv", str(venv_dir)], check=True)
+              python = venv_dir / "bin" / "python"
+              subprocess.run([str(python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
+              subprocess.run([str(python), "-m", "pip", "install", str(wheel_paths[0])], check=True)
+              smoke = (
+                  "import importlib.metadata as m; "
+                  "import hermes_a2a_bridge; "
+                  "assert hermes_a2a_bridge.__version__ == m.version('hermes-a2a-bridge'); "
+                  "eps = [ep.name for ep in m.entry_points(group='hermes_agent.plugins')]; "
+                  "assert 'a2a-bridge' in eps; "
+                  "import hermes_a2a_bridge.config, hermes_a2a_bridge.server, hermes_a2a_bridge.client, hermes_a2a_bridge.tools; "
+                  "print(hermes_a2a_bridge.__version__)"
+              )
+              subprocess.run([str(python), "-c", smoke], check=True)
+
+          print(f"wheel: {wheel_paths[0]}")
+          print(f"sdist: {sdist_paths[0]}")
+          PY
+
+      - name: Upload checked artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-a2a-bridge-release-check-dist
+          path: dist/*
+          if-no-files-found: error

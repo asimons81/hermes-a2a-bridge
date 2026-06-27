@@ -6,6 +6,8 @@ This document records the v0.4 stored-file-ID inbound boundary. Hermes A2A Bridg
 
 Stored file ID inbound support exists only for pre-staged local records and only when both gates are explicitly enabled.
 
+File-boundary-sensitive changes should include focused tests and documentation updates. Treat path handling, URL handling, stored ID gates, inline bytes, upload routes, file route behavior, and Agent Card file metadata as boundary-sensitive.
+
 Phase 10 added deterministic local HTTP+JSON compatibility-peer fixtures, including a file-part rejection capture. That fixture is evidence that the boundary remains closed; it does not enable inbound file support.
 
 Version 0.4.0 implements the gated inbound stored-file-ID design in `docs/INBOUND_FILE_PARTS_DESIGN.md`. Version 0.4.1 adds CLI `send --file-id` and `stream --file-id` request construction for stored file IDs only. Version 0.4.2 adds Hermes tool `file_ids` request construction for stored file IDs only. Version 0.4.3 adds local open-gate end-to-end capture and verification for those stored-ID paths. Version 0.4.4 adds gated limited Agent Card metadata for stored-ID references only. Version 0.4.5 refreshes official SDK and public-peer evidence without changing runtime acceptance. Version 0.4.6 completes a release-candidate hardening audit for package metadata, docs wording, CLI/tool surfaces, fixture safety, config defaults, and smoke paths without changing runtime acceptance. Runtime inbound file parts remain closed by default. `/message:send` and `/message:stream` accept only `{ "file": { "fileId": "file_..." } }` when both `parts.allow_file_parts` and `parts.allow_file_id_references` are true.

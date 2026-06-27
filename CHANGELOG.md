@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add GitHub Actions CI for tests, editable install verification, compile checks, and package builds.
+- Add a manual release validation workflow that builds artifacts and smoke-tests the wheel without publishing.
+- Add lightweight contributor guidance and GitHub issue/PR templates.
+
 ## 0.4.6 (2026-06-26)
 
 Initial release candidate for Hermes A2A Bridge.

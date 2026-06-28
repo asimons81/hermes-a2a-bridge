@@ -1,6 +1,6 @@
 # Release Checklist
 
-This checklist is for the v0.4.6 release artifact verification pass. It is packaging guidance only and does not expand runtime protocol support.
+This checklist is for the v0.4.7 release artifact verification pass. It is packaging guidance only and does not expand runtime protocol support.
 
 GitHub Actions now mirrors the local verification paths:
 
@@ -14,16 +14,16 @@ GitHub Actions now mirrors the local verification paths:
 - Run `python -m pytest`.
 - Run `python -m pip install -e .`.
 - Run `python -m compileall -q hermes_a2a_bridge tests`.
-- Confirm `python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"` prints `0.4.6`.
+- Confirm `python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"` prints `0.4.7`.
 - Confirm package metadata requires Python `>=3.11,<4.0`, and classifiers match the CI-tested Python 3.11, 3.12, and 3.13 versions.
 
 ## Build Artifacts
 
 - Prefer `python -m build`.
 - If `build` is unavailable, install it only into a temporary build environment.
-- Expected artifact names for v0.4.6:
-  - `dist/hermes_a2a_bridge-0.4.6-py3-none-any.whl`
-  - `dist/hermes_a2a_bridge-0.4.6.tar.gz`
+- Expected artifact names for v0.4.7:
+  - `dist/hermes_a2a_bridge-0.4.7-py3-none-any.whl`
+  - `dist/hermes_a2a_bridge-0.4.7.tar.gz`
 - Do not upload artifacts to PyPI during verification.
 
 ## Artifact Inspection
@@ -32,7 +32,7 @@ GitHub Actions now mirrors the local verification paths:
 - Confirm `hermes_a2a_bridge/skills/a2a-bridge/SKILL.md` is present.
 - Confirm runtime dependencies do not include `a2a-sdk`.
 - Confirm no `.db`, SQLite, temp, cache, local absolute path, bearer token, raw stored bytes, or unexpected large files are present.
-- Confirm version metadata remains `0.4.6`.
+- Confirm version metadata remains `0.4.7`.
 - Treat docs and tests as source-tree verification assets; do not assume they are installed from the wheel unless packaging policy changes.
 
 ## Wheel Install Smoke

@@ -5,7 +5,7 @@ This ledger records black-box A2A interoperability evidence for Hermes A2A Bridg
 ## Environment
 
 - Date: 2026-06-26
-- Bridge version under test: 0.4.6
+- Bridge version under test: 0.4.7
 - Official SDK packages: `a2a-sdk 1.0.3`, `a2a-sdk 1.1.0`
 - SDK install location: isolated temporary venv, not a runtime project dependency
 - SDK extra used: `a2a-sdk[http-server]`
@@ -25,8 +25,8 @@ This ledger records black-box A2A interoperability evidence for Hermes A2A Bridg
 - v0.4.4 Agent Card truthfulness pass: default and half-open Agent Cards remain quiet; when both stored-ID gates are enabled, `metadata.hermesA2ABridge.fileReferences` advertises only pre-staged local stored ID references and explicitly says inline bytes, URI references, remote fetch, arbitrary local paths, and uploads are unsupported. This is Hermes-specific metadata, not broad file-part conformance.
 - v0.4.5 official/external interop refresh: optional SDK tests pass against isolated `a2a-sdk` 1.1.0 and 1.0.3 interpreters; both SDK models reject nested `file` objects, including Hermes stored `fileId`; public no-credential HTTP+JSON stored-ID peer capture remains absent.
 - v0.4.6 release-candidate hardening audit: package metadata, docs wording, CLI/tool surfaces, fixture safety, config defaults, and smoke paths were checked without adding runtime protocol features.
-- Unreleased Peer Doctor pass: `hermes a2a doctor` and `a2a_doctor_peer` are metadata-only by default, fetching only a remote Agent Card and classifying likely compatibility with Hermes' HTTP+JSON 1.x subset. Explicit `--live-probe` / `live_probe: true` sends one small diagnostic text message, checks basic `message:send`, and attempts task lookup only if a task ID is returned. Explicit `--live-probe --stream-probe` / `live_probe: true, stream_probe: true` separately sends one small diagnostic text message through `message:stream` and reads a bounded SSE response. The probes do not send files, fetch files, subscribe, cancel tasks, mutate registry state, implement `/v1`, implement JSON-RPC, or prove full A2A conformance.
-- Unreleased Hermes host integration pass: Hermes Agent v0.17.0 can load the `a2a-bridge` pip entry-point plugin when `plugins.enabled` includes `a2a-bridge`; that path registers the `a2a` CLI command, the `a2a_bridge` toolset, all nine A2A tools, and the bundled `a2a-bridge` skill. The same host's `hermes plugins list` and `hermes plugins enable a2a-bridge` commands do not currently discover pip entry-point plugins, so direct host CLI use requires manual `plugins.enabled` configuration until Hermes expands plugin-manager discovery.
+- v0.4.7 Peer Doctor pass: `hermes a2a doctor` and `a2a_doctor_peer` are metadata-only by default, fetching only a remote Agent Card and classifying likely compatibility with Hermes' HTTP+JSON 1.x subset. Explicit `--live-probe` / `live_probe: true` sends one small diagnostic text message, checks basic `message:send`, and attempts task lookup only if a task ID is returned. Explicit `--live-probe --stream-probe` / `live_probe: true, stream_probe: true` separately sends one small diagnostic text message through `message:stream` and reads a bounded SSE response. The probes do not send files, fetch files, subscribe, cancel tasks, mutate registry state, implement `/v1`, implement JSON-RPC, or prove full A2A conformance.
+- v0.4.7 Hermes host integration pass: Hermes Agent v0.17.0 can load the `a2a-bridge` pip entry-point plugin when `plugins.enabled` includes `a2a-bridge`; that path registers the `a2a` CLI command, the `a2a_bridge` toolset, all nine A2A tools, and the bundled `a2a-bridge` skill. The same host's `hermes plugins list` and `hermes plugins enable a2a-bridge` commands do not currently discover pip entry-point plugins, so direct host CLI use requires manual `plugins.enabled` configuration until Hermes expands plugin-manager discovery.
 
 ## Commands used
 

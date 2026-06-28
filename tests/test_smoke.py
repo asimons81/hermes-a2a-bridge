@@ -20,12 +20,12 @@ async def test_release_candidate_smoke_paths(tmp_path):
     assert loaded["files"]["auto_fetch_remote_urls"] is False
 
     card = wire(build_agent_card(default_config()))
-    assert card["version"] == hermes_a2a_bridge.__version__ == "0.4.6"
+    assert card["version"] == hermes_a2a_bridge.__version__ == "0.4.7"
     assert card["defaultInputModes"] == ["text/plain", "application/json"]
     assert "metadata" not in card
 
     response = await health(make_mocked_request("GET", "/health"))
-    assert json.loads(response.text) == {"status": "ok", "version": "0.4.6"}
+    assert json.loads(response.text) == {"status": "ok", "version": "0.4.7"}
 
     parser = argparse.ArgumentParser()
     register_cli(parser)

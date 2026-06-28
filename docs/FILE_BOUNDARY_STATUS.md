@@ -1,6 +1,6 @@
 # File Boundary Status
 
-Current version: 0.4.6.
+Current version: 0.4.7.
 
 This document records the v0.4 stored-file-ID inbound boundary. Hermes A2A Bridge has local file-reference groundwork and now accepts pre-staged local stored file ID references only when explicit gates are enabled. It still does not accept broad inbound A2A file parts or advertise broad file support.
 

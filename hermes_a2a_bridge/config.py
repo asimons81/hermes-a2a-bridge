@@ -40,7 +40,7 @@ def default_config() -> dict[str, Any]:
         "agent_card": {
             "name": "Hermes Agent",
             "description": "A local Hermes Agent exposed through the Agent-to-Agent protocol.",
-            "version": "0.4.6",
+            "version": "0.4.7",
             "provider": {"organization": "local", "url": "http://127.0.0.1:8765"},
             "default_input_modes": ["text/plain", "application/json"],
             "default_output_modes": ["text/plain", "application/json"],

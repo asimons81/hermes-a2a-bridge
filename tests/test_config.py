@@ -214,5 +214,5 @@ def test_runtime_and_package_source_versions_match():
     project = tomllib.loads(
         (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
     )
-    assert hermes_a2a_bridge.__version__ == project["project"]["version"] == "0.4.6"
-    assert default_config()["agent_card"]["version"] == "0.4.6"
+    assert hermes_a2a_bridge.__version__ == project["project"]["version"] == "0.4.7"
+    assert default_config()["agent_card"]["version"] == "0.4.7"

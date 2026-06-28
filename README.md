@@ -8,7 +8,7 @@
 
 ![Hermes A2A Bridge README hero showing local-first Agent-to-Agent messaging, gated file ID references, and secure Hermes integration.](docs/assets/hermes-a2a-bridge-hero.png)
 
-Current protocol expansion release: **v0.4.6**.
+Current protocol expansion release: **v0.4.7**.
 
 ## Install
 

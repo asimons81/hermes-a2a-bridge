@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-a2a-bridge"
-version = "0.4.6"
+version = "0.4.7"
 description = "A thin, local-first Agent-to-Agent bridge for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.11,<4.0"

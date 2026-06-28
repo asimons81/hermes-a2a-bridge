@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.4.7 (2026-06-28)
+
+### Highlights
+
+- Added A2A Peer Doctor diagnostics via `hermes a2a doctor` and `a2a_doctor_peer` for safe Agent Card compatibility checks before runtime operations.
+- Added opt-in live probes (`--live-probe` / `live_probe=true`) that send one diagnostic `message:send` and optionally verify returned task lookup.
+- Added opt-in streaming probes (`--live-probe --stream-probe` / `live_probe=true, stream_probe=true`) that send one diagnostic `message:stream` and read a bounded SSE response.
+- Added Python 3.13 CI coverage.
+- Tightened Python package metadata to `>=3.11,<4.0`.
+- Added and validated GitHub Actions CI, package, and release-check workflows.
+- Fixed an executor cancellation race.
+- Documented Hermes v0.17.0 pip entry-point plugin discovery behavior and manual `plugins.enabled` activation path.
 
 ### Added
 
@@ -14,6 +25,14 @@
 ### Changed
 
 - Document Hermes Agent v0.17.0 pip entry-point plugin discovery behavior and the manual `plugins.enabled` activation path for `a2a-bridge`.
+
+### Limitations
+
+- Peer Doctor does not prove full A2A conformance; it is metadata-only by default.
+- Live probe proves only basic `message:send` and optional task lookup; it does not prove full A2A conformance.
+- Stream probe proves only bounded parseable SSE for a basic diagnostic stream; it does not prove full A2A conformance.
+- File-boundary posture remains closed by default.
+- Hermes Agent upstream `plugins list` / `plugins enable` CLI discovery for pip entry-point plugins is pending separately and is not required to use this bridge.
 
 ## 0.4.6 (2026-06-26)
 

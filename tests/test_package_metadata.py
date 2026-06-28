@@ -15,9 +15,9 @@ def test_package_plugin_and_runtime_versions_match():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     plugin = yaml.safe_load((ROOT / "plugin.yaml").read_text(encoding="utf-8"))
 
-    assert project["project"]["version"] == "0.4.6"
-    assert plugin["version"] == "0.4.6"
-    assert hermes_a2a_bridge.__version__ == "0.4.6"
+    assert project["project"]["version"] == "0.4.7"
+    assert plugin["version"] == "0.4.7"
+    assert hermes_a2a_bridge.__version__ == "0.4.7"
 
 
 def test_python_support_metadata_matches_ci_matrix():

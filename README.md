@@ -16,15 +16,25 @@ Python 3.11 or newer is required.
 
 ```bash
 python -m pip install -e .
-hermes plugins enable a2a-bridge
-hermes a2a init
 ```
 
-The package exposes the `hermes_agent.plugins` entry point `a2a-bridge = hermes_a2a_bridge`.
+The package exposes the `hermes_agent.plugins` entry point `a2a-bridge = hermes_a2a_bridge`. Enable that plugin in Hermes before running `hermes a2a init`.
 
 ## Enable Plugin
 
-Hermes Agent v0.17.0 currently has a host-side UI gap: pip entry-point plugins load at runtime, but `hermes plugins list` and `hermes plugins enable` may not show them. If that happens, add `a2a-bridge` to `plugins.enabled` in `~/.hermes/config.yaml`. The runtime loader path, CLI command registration, tools, and bundled skill were verified with that workaround.
+Hermes Agent v0.17.0 has a host-side discovery gap for pip entry-point plugins: the runtime loader can load `hermes_agent.plugins` entry points, but `hermes plugins list` and `hermes plugins enable a2a-bridge` only discover directory-based bundled/user plugins. In that host version, enable this package by adding the entry-point name to `plugins.enabled` in `~/.hermes/config.yaml`:
+
+```yaml
+plugins:
+  enabled:
+    - a2a-bridge
+```
+
+After the next Hermes process starts, the host should mount `hermes a2a ...`, register the `a2a_bridge` toolset, and load the bundled `a2a-bridge` skill from the installed package. If `hermes a2a --help` still says `a2a` is an invalid command, verify that the same Python environment running `hermes` can see the package entry point:
+
+```bash
+python -c "import importlib.metadata as m; print([(e.name, e.value) for e in m.entry_points().select(group='hermes_agent.plugins')])"
+```
 
 ## Quickstart
 
@@ -521,7 +531,9 @@ Event IDs belong to one SQLite database. No external broker is required: active 
 ## Troubleshooting
 
 - `hermes plugins enable a2a-bridge` says the plugin is missing:
-  Add `a2a-bridge` to `plugins.enabled` in `~/.hermes/config.yaml` on Hermes Agent v0.17.0.
+  Add `a2a-bridge` to `plugins.enabled` in `~/.hermes/config.yaml` on Hermes Agent v0.17.0. This is a host plugin-manager discovery limitation for pip entry points, not a package entry-point registration failure.
+- `hermes a2a --help` says `a2a` is an invalid command:
+  Confirm `plugins.enabled` includes `a2a-bridge` and start a new Hermes process. The CLI command is mounted only after the host runtime loader enables the entry-point plugin.
 - `hermes a2a serve` refuses a bind host:
   Keep `127.0.0.1` or set `server.allow_remote_hosts: true` explicitly.
 - Remote calls fail with auth errors:

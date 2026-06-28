@@ -44,9 +44,21 @@ def test_package_metadata_keeps_expected_entrypoints_dependencies_and_skill_data
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     plugin = yaml.safe_load((ROOT / "plugin.yaml").read_text(encoding="utf-8"))
 
+    expected_tools = [
+        "a2a_discover_agent",
+        "a2a_doctor_peer",
+        "a2a_send_message",
+        "a2a_get_task",
+        "a2a_list_tasks",
+        "a2a_cancel_task",
+        "a2a_registry_add",
+        "a2a_registry_list",
+        "a2a_registry_remove",
+    ]
+
     assert project["project"]["entry-points"]["hermes_agent.plugins"]["a2a-bridge"] == "hermes_a2a_bridge"
     assert plugin["provides_cli"] == ["a2a"]
-    assert "a2a_send_message" in plugin["provides_tools"]
+    assert plugin["provides_tools"] == expected_tools
     assert "skills/*/SKILL.md" in project["tool"]["setuptools"]["package-data"]["hermes_a2a_bridge"]
 
     deps = set(project["project"]["dependencies"])

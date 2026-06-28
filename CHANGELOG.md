@@ -11,6 +11,10 @@
 - Add explicit opt-in Peer Doctor live probes through `hermes a2a doctor --live-probe` and `a2a_doctor_peer(live_probe=true)` to send one diagnostic text message and optionally verify returned task lookup.
 - Add explicit opt-in Peer Doctor streaming probes through `hermes a2a doctor --live-probe --stream-probe` and `a2a_doctor_peer(live_probe=true, stream_probe=true)` to send one diagnostic text message through `message:stream` and read a bounded SSE response.
 
+### Changed
+
+- Document Hermes Agent v0.17.0 pip entry-point plugin discovery behavior and the manual `plugins.enabled` activation path for `a2a-bridge`.
+
 ## 0.4.6 (2026-06-26)
 
 Initial release candidate for Hermes A2A Bridge.

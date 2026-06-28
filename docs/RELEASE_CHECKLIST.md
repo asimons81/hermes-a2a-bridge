@@ -47,6 +47,18 @@ GitHub Actions now mirrors the local verification paths:
 - Confirm bundled skill package data can be read from the installed wheel.
 - Do not expect `python -m hermes_a2a_bridge` to work; the CLI is registered through the Hermes plugin.
 
+## Hermes Host Discovery Smoke
+
+- Identify the target host with `where hermes` and `hermes --version`.
+- Confirm the same Python environment can see the package entry point:
+  - `python -c "import importlib.metadata as m; print([(e.name, e.value) for e in m.entry_points().select(group='hermes_agent.plugins')])"`
+- On Hermes Agent v0.17.0, do not rely on `hermes plugins enable a2a-bridge`; the plugin-manager command may report that pip entry-point plugins are not installed or bundled.
+- Enable the pip entry-point plugin by adding `a2a-bridge` to `plugins.enabled` in the target Hermes config, then start a new Hermes process.
+- Confirm `hermes a2a --help` mounts the command tree.
+- Confirm `hermes tools list` shows the `a2a_bridge` toolset.
+- Confirm the runtime loader reports the bundled `a2a-bridge` skill path as readable when the plugin is enabled.
+- If the host cannot mount `hermes a2a ...`, use the package's registered argparse handler in tests and document the host limitation. Do not patch around host discovery behavior in this package.
+
 ## Optional SDK Checks
 
 - Optional SDK tests require `A2A_SDK_PYTHON`.

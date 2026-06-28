@@ -1,5 +1,8 @@
 include LICENSE
 include README.md
+include AGENTS.md
+include CHANGELOG.md
+include CONTRIBUTING.md
 include plugin.yaml
 include pyproject.toml
 recursive-include docs *.md

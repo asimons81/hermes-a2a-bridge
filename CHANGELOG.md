@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Tightened README and added AGENTS.md for lower-token agent-friendly onboarding.
+- Moved detailed version history and interop narrative from README to docs/INTEROP.md, linked from README and AGENTS.md.
+
 ## 0.4.7 (2026-06-28)
 
 ### Highlights

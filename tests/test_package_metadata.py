@@ -57,6 +57,7 @@ def test_package_metadata_keeps_expected_entrypoints_dependencies_and_skill_data
     ]
 
     assert project["project"]["entry-points"]["hermes_agent.plugins"]["a2a-bridge"] == "hermes_a2a_bridge"
+    assert project["project"]["scripts"]["hermes-a2a-bridge"] == "hermes_a2a_bridge.install_doctor:main"
     assert plugin["provides_cli"] == ["a2a"]
     assert plugin["provides_tools"] == expected_tools
     assert "skills/*/SKILL.md" in project["tool"]["setuptools"]["package-data"]["hermes_a2a_bridge"]

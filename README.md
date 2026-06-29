@@ -20,6 +20,16 @@ python -m pip install -e .
 
 The package exposes the `hermes_agent.plugins` entry point `a2a-bridge = hermes_a2a_bridge`. Enable that plugin in Hermes before running `hermes a2a init`.
 
+Check the package entry point and Hermes activation status with the read-only install doctor:
+
+```bash
+hermes-a2a-bridge doctor-install
+hermes-a2a-bridge doctor-install --json
+python -m hermes_a2a_bridge doctor-install --json
+```
+
+The helper does not edit user config. It reports whether the package imports, whether the `hermes_agent.plugins` entry point is installed, whether a `hermes` executable is on `PATH`, and whether a readable Hermes config already lists `a2a-bridge` under `plugins.enabled`.
+
 ## Enable Plugin
 
 Hermes Agent v0.17.0 has a host-side discovery gap for pip entry-point plugins: the runtime loader can load `hermes_agent.plugins` entry points, but `hermes plugins list` and `hermes plugins enable a2a-bridge` only discover directory-based bundled/user plugins. In that host version, enable this package by adding the entry-point name to `plugins.enabled` in `~/.hermes/config.yaml`:
@@ -200,6 +210,7 @@ curl -H "Authorization: Bearer *** \
 ## CLI Reference
 
 ```text
+hermes-a2a-bridge doctor-install [--config PATH] [--json]
 hermes a2a init
 hermes a2a card [--json]
 hermes a2a serve [--host HOST] [--port PORT]
@@ -252,6 +263,7 @@ hermes a2a doctor demo --live-probe --stream-probe --json
 Notes:
 
 - `--json` prints JSON only.
+- `hermes-a2a-bridge doctor-install` is a standalone package helper; it is available before the Hermes host mounts `hermes a2a ...`.
 - `registry list --json` reports `hasToken` and never prints token values.
 - `--file-id` appends stored file ID reference parts only, shaped as `{ "file": { "fileId": "file_..." } }`. The target server must explicitly enable both `parts.allow_file_parts: true` and `parts.allow_file_id_references: true`.
 - `send --file` and `stream --file` are **not** supported. The CLI does not read local files, stage files automatically, fetch remote URLs, or embed file bytes for send/stream requests.
@@ -445,9 +457,9 @@ Event IDs belong to one SQLite database. No external broker is required: active 
 ## Troubleshooting
 
 - `hermes plugins enable a2a-bridge` says the plugin is missing:
-  Add `a2a-bridge` to `plugins.enabled` in `~/.hermes/config.yaml` on Hermes Agent v0.17.0. This is a host plugin-manager discovery limitation for pip entry points, not a package entry-point registration failure.
+  Run `hermes-a2a-bridge doctor-install` to verify the package entry point, then add `a2a-bridge` to `plugins.enabled` in `~/.hermes/config.yaml` on Hermes Agent v0.17.0. This is a host plugin-manager discovery limitation for pip entry points, not a package entry-point registration failure.
 - `hermes a2a --help` says `a2a` is an invalid command:
-  Confirm `plugins.enabled` includes `a2a-bridge` and start a new Hermes process. The CLI command is mounted only after the host runtime loader enables the entry-point plugin.
+  Confirm `plugins.enabled` includes `a2a-bridge` and start a new Hermes process. `hermes-a2a-bridge doctor-install --json` can report the best-effort activation status for agents. The CLI command is mounted only after the host runtime loader enables the entry-point plugin.
 - `hermes a2a serve` refuses a bind host:
   Keep `127.0.0.1` or set `server.allow_remote_hosts: true` explicitly.
 - Remote calls fail with auth errors:

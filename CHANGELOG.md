@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Added a read-only `hermes-a2a-bridge doctor-install` / `python -m hermes_a2a_bridge doctor-install` helper with JSON output for package, entry-point, Hermes executable, and `plugins.enabled` activation diagnostics.
+
 ### Changed
 - Tightened README and added AGENTS.md for lower-token agent-friendly onboarding.
 - Moved detailed version history and interop narrative from README to docs/INTEROP.md, linked from README and AGENTS.md.

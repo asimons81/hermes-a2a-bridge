@@ -8,6 +8,7 @@ description: Discover and call text or structured JSON A2A agents through the He
 Use this bridge when Hermes needs to call another HTTP+JSON agent.
 
 - Discover unfamiliar agents first with `a2a_discover_agent`.
+- If `hermes a2a ...` is unavailable after package install, run `hermes-a2a-bridge doctor-install --json` or `python -m hermes_a2a_bridge doctor-install --json`. This helper is read-only and checks package import, the `hermes_agent.plugins` entry point, a Hermes executable on `PATH`, and best-effort `plugins.enabled` activation.
 - Use `a2a_doctor_peer` or `hermes a2a doctor AGENT_OR_URL --json` before first contact when compatibility is uncertain. The `hermes a2a` CLI path is available after the Hermes host has enabled the `a2a-bridge` plugin entry point.
 - Keep Peer Doctor metadata-only unless the user explicitly asks for a live probe. `a2a_doctor_peer` with `live_probe: true` or `hermes a2a doctor AGENT_OR_URL --live-probe --json` sends one tiny diagnostic text message and may look up the returned task ID.
 - Use the streaming Peer Doctor probe only when the user explicitly asks for it. It requires both `live_probe: true` and `stream_probe: true`, or `hermes a2a doctor AGENT_OR_URL --live-probe --stream-probe --json`; it sends one tiny diagnostic text message through `message:stream` and reads a bounded SSE response.

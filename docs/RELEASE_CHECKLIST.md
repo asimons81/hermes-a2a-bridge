@@ -15,6 +15,7 @@ GitHub Actions now mirrors the local verification paths:
 - Run `python -m pip install -e .`.
 - Run `python -m compileall -q hermes_a2a_bridge tests`.
 - Confirm `python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"` prints `0.4.7`.
+- Run `hermes-a2a-bridge doctor-install --json` as a read-only package and activation diagnostic.
 - Confirm package metadata requires Python `>=3.11,<4.0`, and classifiers match the CI-tested Python 3.11, 3.12, and 3.13 versions.
 
 ## Build Artifacts
@@ -43,15 +44,17 @@ GitHub Actions now mirrors the local verification paths:
   - `python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"`
   - `python -c "import importlib.metadata as m; print(m.version('hermes-a2a-bridge'))"`
 - Inspect `hermes_agent.plugins` entry points and confirm `a2a-bridge`.
+- Run `python -m hermes_a2a_bridge doctor-install --json` in the wheel environment. Activation may report unchecked or not enabled when no Hermes config is present; that is acceptable.
 - Import key modules: `config`, `server`, `client`, and `tools`.
 - Confirm bundled skill package data can be read from the installed wheel.
-- Do not expect `python -m hermes_a2a_bridge` to work; the CLI is registered through the Hermes plugin.
+- Confirm `python -m hermes_a2a_bridge doctor-install --json` works; the `hermes a2a ...` command tree is still registered through the Hermes plugin.
 
 ## Hermes Host Discovery Smoke
 
 - Identify the target host with `where hermes` and `hermes --version`.
 - Confirm the same Python environment can see the package entry point:
   - `python -c "import importlib.metadata as m; print([(e.name, e.value) for e in m.entry_points().select(group='hermes_agent.plugins')])"`
+- Prefer `hermes-a2a-bridge doctor-install --json` for the combined package, entry-point, Hermes executable, and read-only `plugins.enabled` check.
 - On Hermes Agent v0.17.0, do not rely on `hermes plugins enable a2a-bridge`; the plugin-manager command may report that pip entry-point plugins are not installed or bundled.
 - Enable the pip entry-point plugin by adding `a2a-bridge` to `plugins.enabled` in the target Hermes config, then start a new Hermes process.
 - Confirm `hermes a2a --help` mounts the command tree.

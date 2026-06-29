@@ -56,6 +56,10 @@ python -m build
 
 # Check version
 python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"
+
+# Read-only install and Hermes activation diagnostics
+hermes-a2a-bridge doctor-install --json
+python -m hermes_a2a_bridge doctor-install --json
 ```
 
 Optional SDK integration tests require an isolated `A2A_SDK_PYTHON` interpreter pointing at `a2a-sdk[http-server]`. They skip cleanly when unset.
@@ -71,5 +75,6 @@ If you need to understand which file-boundary assertions exist, read `docs/FILE_
 - Version: `0.4.7` (in `pyproject.toml`, `plugin.yaml`, and runtime `__version__`)
 - Python: `>=3.11,<4.0`
 - Entry point: `hermes_agent.plugins` → `a2a-bridge = hermes_a2a_bridge`
+- Standalone helper: `hermes-a2a-bridge doctor-install` and `python -m hermes_a2a_bridge doctor-install`
 - Bundled skill: `hermes_a2a_bridge/skills/a2a-bridge/SKILL.md`
 - CI: Python 3.11/3.12/3.13 on Ubuntu, 3.11 on Windows

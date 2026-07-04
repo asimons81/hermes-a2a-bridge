@@ -4,6 +4,7 @@
 
 ### Added
 - Added a read-only `hermes-a2a-bridge doctor-install` / `python -m hermes_a2a_bridge doctor-install` helper with JSON output for package, entry-point, Hermes executable, and `plugins.enabled` activation diagnostics.
+- Added a fast local-only fake A2A peer runner (`python -m tests.local_http_json_peer --host 127.0.0.1 --port 8766`) for Peer Doctor smoke tests and release validation. It supports Agent Card discovery, `message:send`, `message:stream`, and task lookup without calling a real executor or accessing the network. It binds to loopback by default and rejects non-loopback binds unless `--allow-remote` is passed.
 
 ### Changed
 - Tightened README and added AGENTS.md for lower-token agent-friendly onboarding.

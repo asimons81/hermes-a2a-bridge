@@ -12,7 +12,7 @@ from hermes_a2a_bridge.operations import ingest_local_file
 from hermes_a2a_bridge.server import create_app
 from hermes_a2a_bridge.store import Store
 
-from raw_capture_harness import sanitize_headers, sanitize_path_qs, sanitize_payload, sanitize_text
+from tests.raw_capture_harness import sanitize_headers, sanitize_path_qs, sanitize_payload, sanitize_text
 
 
 @dataclass

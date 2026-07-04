@@ -14,7 +14,7 @@ from hermes_a2a_bridge.errors import ClientError
 from hermes_a2a_bridge.models import Message, StreamResponse, Task
 from hermes_a2a_bridge.operations import add_remote_url_file_reference
 
-from stored_file_id_e2e_harness import StoredFileIdE2EHarness, assert_safe_serialized
+from tests.stored_file_id_e2e_harness import StoredFileIdE2EHarness, assert_safe_serialized
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "blackbox" / "stored_file_id_e2e"

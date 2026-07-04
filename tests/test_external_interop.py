@@ -12,7 +12,7 @@ from hermes_a2a_bridge import cli, client
 from hermes_a2a_bridge.config import save_config
 from hermes_a2a_bridge.errors import ClientError
 from hermes_a2a_bridge.models import AgentCard, Message, Task
-from fake_external_a2a import create_fake_external_app
+from tests.fake_external_a2a import create_fake_external_app
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "a2a"

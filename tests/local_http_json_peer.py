@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+import argparse
+import asyncio
 import json
+import signal
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from raw_capture_harness import sanitize_headers, sanitize_path_qs, sanitize_payload, sanitize_text
+try:
+    from .raw_capture_harness import sanitize_headers, sanitize_path_qs, sanitize_payload, sanitize_text
+except ImportError:
+    from raw_capture_harness import sanitize_headers, sanitize_path_qs, sanitize_payload, sanitize_text
 
 
 TASK_ID = "local-peer-task-1"
@@ -78,6 +85,7 @@ class LocalHttpJsonPeer:
     captures: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     tasks: dict[str, dict[str, Any]] = field(default_factory=dict)
     client: TestClient | None = None
+    _runner: web.AppRunner | None = None
 
     def app(self) -> web.Application:
         app = web.Application()
@@ -93,9 +101,26 @@ class LocalHttpJsonPeer:
         await self.client.start_server()
         return str(self.client.make_url("")).rstrip("/")
 
+    async def run(self, host: str = "127.0.0.1", port: int = 8766) -> str:
+        """Start a real TCP server on the given host and port.
+
+        Use port 0 to bind an ephemeral port. The returned URL uses the
+        actual bound port.
+        """
+        self._runner = web.AppRunner(self.app())
+        await self._runner.setup()
+        site = web.TCPSite(self._runner, host, port)
+        await site.start()
+        actual_host, actual_port = self._runner.addresses[0]
+        return f"http://{actual_host}:{actual_port}"
+
     async def close(self) -> None:
         if self.client is not None:
             await self.client.close()
+            self.client = None
+        if self._runner is not None:
+            await self._runner.cleanup()
+            self._runner = None
 
     async def _capture(
         self,
@@ -244,3 +269,64 @@ def _sse_frames(events: list[dict[str, Any]]) -> str:
     for index, event in enumerate(events, start=1):
         frames.append(f"id: {index}\nevent: message\ndata: {json.dumps(event, separators=(',', ':'))}\n\n")
     return "".join(frames)
+
+
+def _is_loopback_host(host: str) -> bool:
+    return host.lower().strip("[]") in {"127.0.0.1", "localhost", "::1"}
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Fast local-only fake A2A peer for smoke testing and release validation.",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind host. Defaults to 127.0.0.1. Non-loopback binds require --allow-remote.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8766,
+        help="Bind port. Defaults to 8766.",
+    )
+    parser.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Allow binding to a non-loopback interface. This peer is still test-only.",
+    )
+    return parser.parse_args(argv)
+
+
+async def _serve(args: argparse.Namespace) -> int:
+    if not args.allow_remote and not _is_loopback_host(args.host):
+        print(
+            f"Refusing non-loopback bind {args.host!r}. "
+            "Use --allow-remote only if you understand the risk.",
+            file=sys.stderr,
+        )
+        return 1
+    peer = LocalHttpJsonPeer()
+    url = await peer.run(args.host, args.port)
+    print(f"Local HTTP+JSON A2A fake peer listening on {url}")
+    print("Press Ctrl+C to stop.")
+    loop = asyncio.get_running_loop()
+    stop = asyncio.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, stop.set)
+        except NotImplementedError:
+            pass
+    try:
+        await stop.wait()
+    finally:
+        await peer.close()
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    return asyncio.run(_serve(_parse_args(argv)))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

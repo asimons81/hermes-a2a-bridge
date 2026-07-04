@@ -62,6 +62,17 @@ GitHub Actions now mirrors the local verification paths:
 - Confirm the runtime loader reports the bundled `a2a-bridge` skill path as readable when the plugin is enabled.
 - If the host cannot mount `hermes a2a ...`, use the package's registered argparse handler in tests and document the host limitation. Do not patch around host discovery behavior in this package.
 
+## Fast Local Fake Peer Smoke
+
+- Start the test-only local fake peer: `python -m tests.local_http_json_peer --host 127.0.0.1 --port 8766`
+- Confirm it binds to loopback and prints a local URL.
+- Run metadata-only Peer Doctor: `hermes a2a doctor http://127.0.0.1:8766 --json` (or the registered CLI handler if `hermes a2a` is not mounted).
+- Run live probe: `hermes a2a doctor http://127.0.0.1:8766 --live-probe --json`
+- Run stream probe: `hermes a2a doctor http://127.0.0.1:8766 --live-probe --stream-probe --json`
+- Confirm all probes pass without executor timeout.
+- Stop the peer cleanly with Ctrl+C.
+- This peer is local-only, does not send/fetch files, and is not a real interoperability proof.
+
 ## Optional SDK Checks
 
 - Optional SDK tests require `A2A_SDK_PYTHON`.

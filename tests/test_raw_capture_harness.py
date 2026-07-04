@@ -9,7 +9,7 @@ from hermes_a2a_bridge import client
 from hermes_a2a_bridge.config import default_config
 from hermes_a2a_bridge.models import build_agent_card
 
-from raw_capture_harness import RawCaptureHarness, sanitize_path_qs
+from tests.raw_capture_harness import RawCaptureHarness, sanitize_path_qs
 
 
 ROOT = Path(__file__).parents[1]

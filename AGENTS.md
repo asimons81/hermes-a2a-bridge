@@ -16,6 +16,7 @@
 | Understand Hermes tool surface | [hermes_a2a_bridge/skills/a2a-bridge/SKILL.md](hermes_a2a_bridge/skills/a2a-bridge/SKILL.md) |
 | External interop search history | [docs/EXTERNAL_INTEROP.md](docs/EXTERNAL_INTEROP.md) |
 | Design history (file parts) | [docs/FILE_PARTS_DESIGN.md](docs/FILE_PARTS_DESIGN.md) + [docs/INBOUND_FILE_PARTS_DESIGN.md](docs/INBOUND_FILE_PARTS_DESIGN.md) |
+| Run a fast local fake peer for smoke tests | [README.md](README.md) § Fast Local Fake Peer + `tests/local_http_json_peer.py` |
 
 ## Hard boundaries
 
@@ -60,6 +61,9 @@ python -c "import hermes_a2a_bridge; print(hermes_a2a_bridge.__version__)"
 # Read-only install and Hermes activation diagnostics
 hermes-a2a-bridge doctor-install --json
 python -m hermes_a2a_bridge doctor-install --json
+
+# Fast local fake peer for smoke testing (test/dev-only, loopback by default)
+python -m tests.local_http_json_peer --host 127.0.0.1 --port 8766
 ```
 
 Optional SDK integration tests require an isolated `A2A_SDK_PYTHON` interpreter pointing at `a2a-sdk[http-server]`. They skip cleanly when unset.

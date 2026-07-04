@@ -91,6 +91,27 @@ hermes a2a doctor https://agent.example --live-probe --stream-probe --json
 
 The same checks are available as a Hermes tool (`a2a_doctor_peer`) with `live_probe` and `stream_probe` boolean arguments.
 
+## Fast Local Fake Peer for Smoke Testing
+
+A fast, local-only fake A2A peer is included under `tests/` for diagnostics and release validation. It responds immediately to Agent Card discovery, `message:send`, `message:stream`, and task lookup without calling a real executor.
+
+```bash
+python -m tests.local_http_json_peer --host 127.0.0.1 --port 8766
+```
+
+Then run Peer Doctor against it:
+
+```bash
+hermes a2a doctor http://127.0.0.1:8766 --json
+hermes a2a doctor http://127.0.0.1:8766 --live-probe --json
+hermes a2a doctor http://127.0.0.1:8766 --live-probe --stream-probe --json
+```
+
+- This peer is **test/dev-only and local-only**. It binds to `127.0.0.1` by default and refuses non-loopback binds unless you pass `--allow-remote`.
+- It does **not** send files, fetch files, read arbitrary local paths, or shell out to a real executor.
+- It is useful for verifying that Peer Doctor metadata, live probe, and stream probe work without the default `hermes chat -q` executor timeout.
+- It is **not** proof of interoperability with a real remote peer.
+
 ## Local Server Example
 
 ```bash

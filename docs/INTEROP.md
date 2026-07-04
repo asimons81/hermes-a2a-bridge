@@ -5,7 +5,7 @@ This ledger records black-box A2A interoperability evidence for Hermes A2A Bridg
 ## Environment
 
 - Date: 2026-06-26
-- Bridge version under test: 0.4.7
+- Bridge version under test: 0.4.8
 - Official SDK packages: `a2a-sdk 1.0.3`, `a2a-sdk 1.1.0`
 - SDK install location: isolated temporary venv, not a runtime project dependency
 - SDK extra used: `a2a-sdk[http-server]`

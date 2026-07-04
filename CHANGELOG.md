@@ -1,14 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.4.8 - 2026-07-04
 
 ### Added
-- Added a read-only `hermes-a2a-bridge doctor-install` / `python -m hermes_a2a_bridge doctor-install` helper with JSON output for package, entry-point, Hermes executable, and `plugins.enabled` activation diagnostics.
-- Added a fast local-only fake A2A peer runner (`python -m tests.local_http_json_peer --host 127.0.0.1 --port 8766`) for Peer Doctor smoke tests and release validation. It supports Agent Card discovery, `message:send`, `message:stream`, and task lookup without calling a real executor or accessing the network. It binds to loopback by default and rejects non-loopback binds unless `--allow-remote` is passed.
+- Added read-only Install Doctor for Hermes activation/setup diagnostics.
+- Added console entry point `hermes-a2a-bridge doctor-install`.
+- Added `python -m hermes_a2a_bridge doctor-install`.
+- Added fast local HTTP+JSON fake peer for smoke/release validation.
+- Added docs for agent-friendly setup and local fake peer testing.
 
 ### Changed
 - Tightened README and added AGENTS.md for lower-token agent-friendly onboarding.
 - Moved detailed version history and interop narrative from README to docs/INTEROP.md, linked from README and AGENTS.md.
+
+### Limitations
+- Install Doctor is read-only by default; it does not mutate config or registry.
+- Users on Hermes v0.18.0 may still need manual `plugins.enabled` activation.
+- Fast fake peer is dev/test-only, local-only, and not real-world interop proof.
+- Upstream Hermes PR #54150 is not required and is not merged.
+
+## Unreleased
 
 ## 0.4.7 (2026-06-28)
 

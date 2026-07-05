@@ -111,6 +111,7 @@ hermes a2a doctor http://127.0.0.1:8766 --live-probe --stream-probe --json
 - It does **not** send files, fetch files, read arbitrary local paths, or shell out to a real executor.
 - It is useful for verifying that Peer Doctor metadata, live probe, and stream probe work without the default `hermes chat -q` executor timeout.
 - It is **not** proof of interoperability with a real remote peer.
+- **Source checkout required:** `tests/` is excluded from the built wheel/sdist (pruned by `MANIFEST.in`). To use the fake peer, clone the repo and run from the project root.
 
 ## Local Server Example
 
@@ -205,26 +206,26 @@ Read the generated bearer token locally from `~/.hermes/a2a/config.yaml`, then:
 curl http://127.0.0.1:8765/health
 curl http://127.0.0.1:8765/.well-known/agent-card.json
 curl -X POST http://127.0.0.1:8765/message:send \
-  -H "Authorization: Bearer *** \
+  -H "Authorization: Bearer $A2A_TOKEN" \
   -H "Content-Type: application/json" \
   -H "A2A-Version: 1.0" \
   -d '{"message":{"messageId":"replace-with-a-uuid","role":"ROLE_USER","parts":[{"text":"Hello","mediaType":"text/plain"}]}}'
 curl -X POST http://127.0.0.1:8765/message:send \
-  -H "Authorization: Bearer *** \
+  -H "Authorization: Bearer $A2A_TOKEN" \
   -H "Content-Type: application/json" \
   -H "A2A-Version: 1.0" \
   -d '{"message":{"messageId":"replace-with-a-uuid","role":"ROLE_USER","parts":[{"data":{"topic":"status","count":2}}]}}'
 curl -X POST http://127.0.0.1:8765/message:send \
-  -H "Authorization: Bearer *** \
+  -H "Authorization: Bearer $A2A_TOKEN" \
   -H "Content-Type: application/json" \
   -H "A2A-Version: 1.0" \
   -d '{"message":{"messageId":"replace-with-a-uuid","role":"ROLE_USER","parts":[{"text":"Summarize this","mediaType":"text/plain"},{"data":[{"name":"Ada"},{"name":"Grace"}]}]}}'
 curl -N -X POST http://127.0.0.1:8765/message:stream \
-  -H "Authorization: Bearer *** \
+  -H "Authorization: Bearer $A2A_TOKEN" \
   -H "Content-Type: application/json" \
   -H "A2A-Version: 1.0" \
   -d '{"message":{"messageId":"replace-with-a-uuid","role":"ROLE_USER","parts":[{"text":"Hello","mediaType":"text/plain"}]}}'
-curl -H "Authorization: Bearer *** \
+curl -H "Authorization: Bearer $A2A_TOKEN" \
   http://127.0.0.1:8765/tasks
 ```
 
@@ -312,9 +313,9 @@ hermes a2a files scan --json
 hermes a2a files stats --json
 
 # Authenticated local file routes (require bearer token)
-curl -H "Authorization: Bearer *** \
+curl -H "Authorization: Bearer $A2A_TOKEN" \
   http://127.0.0.1:8765/files/FILE_ID/metadata
-curl -H "Authorization: Bearer *** \
+curl -H "Authorization: Bearer $A2A_TOKEN" \
   -OJ http://127.0.0.1:8765/files/FILE_ID
 
 # Clean up orphaned bytes or repair missing-byte metadata (dry-run by default)

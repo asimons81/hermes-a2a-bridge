@@ -1,10 +1,18 @@
-"""Safe subprocess adapter for Hermes' verified one-shot CLI."""
+"""Safe subprocess adapter for Hermes' verified one-shot CLI.
+
+Uses synchronous subprocess.Popen in a thread pool executor to avoid the
+nested asyncio event loop that triggers C-extension SIGABRT (-6) during
+interpreter teardown.  See issue #3 for full diagnosis.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import os
 import shlex
+import subprocess
+import threading
+import time
 from typing import Any
 
 from .auth import redact_secrets
@@ -15,83 +23,120 @@ VERIFIED_HERMES_COMMAND = ["hermes", "chat", "-q", "{prompt}"]
 
 
 class ExecutorManager:
-    """Owns only subprocesses started for tasks in this server process."""
+    """Tracks cancellation state and Popen handles for executor tasks.
+
+    Subprocesses run synchronously in a thread pool.  The manager
+    coordinates cancellation via ``threading.Event`` signals *and*
+    direct ``Popen.kill()`` calls through a thread-safe handle store,
+    so that a cancel request terminates the subprocess immediately
+    without waiting for the thread's polling loop.
+    """
 
     def __init__(self):
-        self._processes: dict[str, asyncio.subprocess.Process] = {}
         self._cancel_requested: set[str] = set()
+        self._cancel_events: dict[str, threading.Event] = {}
+        self._processes: dict[str, subprocess.Popen] = {}
         self._lock = asyncio.Lock()
+        self._proc_lock = threading.Lock()
 
-    async def register(self, task_id: str, process: asyncio.subprocess.Process) -> None:
-        async with self._lock:
-            canceled = task_id in self._cancel_requested
-            if not canceled:
-                self._processes[task_id] = process
-        if canceled:
-            await self._stop_process(process, 0)
-            raise ExecutorCanceled("Task canceled before executor startup completed")
+    # --- Called from async context (by execute() and server.py) ---
 
-    async def unregister(self, task_id: str, process: asyncio.subprocess.Process) -> None:
+    async def register(self, task_id: str, event: threading.Event) -> None:
+        """Register a cancel event for a task.
+
+        If the task was already marked for cancellation the event is
+        set immediately so the executor thread aborts right away.
+        """
         async with self._lock:
-            if self._processes.get(task_id) is process:
-                self._processes.pop(task_id, None)
+            if task_id in self._cancel_requested:
+                event.set()
+            self._cancel_events[task_id] = event
+
+    async def unregister(self, task_id: str) -> None:
+        """Remove cancellation tracking and the Popen handle."""
+        async with self._lock:
+            self._cancel_events.pop(task_id, None)
             self._cancel_requested.discard(task_id)
-
-    async def cancel(self, task_id: str, grace_seconds: float = 3) -> bool:
-        async with self._lock:
-            self._cancel_requested.add(task_id)
-            process = self._processes.get(task_id)
-        if process is None or process.returncode is not None:
-            return False
-        await self._stop_process(process, grace_seconds)
-        return True
-
-    async def has_process(self, task_id: str) -> bool:
-        async with self._lock:
-            process = self._processes.get(task_id)
-            return process is not None and process.returncode is None
+        with self._proc_lock:
+            self._processes.pop(task_id, None)
 
     async def is_cancel_requested(self, task_id: str) -> bool:
         async with self._lock:
             return task_id in self._cancel_requested
 
-    async def forget(self, task_id: str) -> None:
+    async def has_process(self, task_id: str) -> bool:
+        """Return True if a Popen handle is registered for *task_id*."""
+        with self._proc_lock:
+            return task_id in self._processes
+
+    async def cancel(self, task_id: str, grace_seconds: float = 3) -> bool:
+        """Mark *task_id* as canceled and kill the subprocess immediately.
+
+        *grace_seconds* is accepted for backward compatibility with
+        server.py callers; the thread-based subprocess is killed right
+        away rather than waiting for a grace window.
+        """
         async with self._lock:
-            if task_id not in self._processes:
-                self._cancel_requested.discard(task_id)
+            self._cancel_requested.add(task_id)
+        # Kill the Popen handle directly (thread-safe).
+        with self._proc_lock:
+            proc = self._processes.get(task_id)
+        if proc is not None:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+            # Signal the cancel event so the thread exits the polling
+            # loop cleanly with ExecutorCanceled.
+            async with self._lock:
+                event = self._cancel_events.get(task_id)
+            if event is not None:
+                event.set()
+            return True
+        # Fallback: signal the cancel event for the thread polling loop.
+        async with self._lock:
+            event = self._cancel_events.get(task_id)
+        if event is not None:
+            event.set()
+            return True
+        return False
 
     async def cancel_all(self, grace_seconds: float = 0) -> None:
-        async with self._lock:
-            task_ids = tuple(self._processes)
-        await asyncio.gather(
-            *(self.cancel(task_id, grace_seconds) for task_id in task_ids),
-            return_exceptions=True,
-        )
+        """Cancel every tracked task (used on server shutdown).
 
-    @staticmethod
-    async def _stop_process(process: asyncio.subprocess.Process, grace_seconds: float) -> None:
-        if process.returncode is not None:
-            return
-        try:
-            process.terminate()
-        except ProcessLookupError:
-            return
-        try:
-            await asyncio.wait_for(process.wait(), timeout=max(0, grace_seconds))
-        except asyncio.TimeoutError:
-            if process.returncode is None:
+        Kills all registered Popen handles and signals all cancel
+        events so executor threads abort promptly.
+        """
+        async with self._lock:
+            events = list(self._cancel_events.values())
+            for task_id in list(self._cancel_events):
+                self._cancel_requested.add(task_id)
+        with self._proc_lock:
+            for proc in self._processes.values():
                 try:
-                    process.kill()
+                    proc.kill()
                 except ProcessLookupError:
                     pass
-            await process.wait()
+        for event in events:
+            event.set()
+
+    # --- Called from executor thread (by _run_subprocess_sync) ---
+
+    def register_process(self, task_id: str, proc: subprocess.Popen) -> None:
+        """Stash a Popen handle for direct cancellation.
+
+        This is NOT async -- it is called from the executor thread.
+        """
+        with self._proc_lock:
+            self._processes[task_id] = proc
 
 
 def command_argv(config: dict[str, Any], prompt: str) -> list[str]:
     configured = config.get("executor", {}).get("command")
     if configured is None:
         raise ExecutorError(
-            "No Hermes executor command configured. Set executor.command in ~/.hermes/a2a/config.yaml"
+            "No Hermes executor command configured. "
+            "Set executor.command in ~/.hermes/a2a/config.yaml"
         )
     elif isinstance(configured, str):
         template = shlex.split(configured, posix=os.name != "nt")
@@ -104,48 +149,121 @@ def command_argv(config: dict[str, Any], prompt: str) -> list[str]:
     return [part.replace("{prompt}", prompt) for part in template]
 
 
+def _run_subprocess_sync(
+    argv: list[str],
+    timeout: int,
+    cancel_event: threading.Event | None,
+    manager: ExecutorManager | None,
+    task_id: str | None,
+) -> tuple[bytes, bytes, int]:
+    """Run a subprocess synchronously in a worker thread.
+
+    Uses ``subprocess.Popen`` with a 1-second polling loop so that
+    cancellation (via ``cancel_event`` or direct ``Popen.kill()``
+    through the manager) and timeouts are responsive.
+
+    This completely avoids ``asyncio.create_subprocess_exec``, which
+    triggers a C-extension SIGABRT when the Hermes subprocess shuts
+    down inside a parent that already has a busy asyncio event loop.
+    """
+    proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if manager is not None and task_id is not None:
+        manager.register_process(task_id, proc)
+
+    deadline = time.monotonic() + timeout
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            proc.kill()
+            proc.communicate()
+            raise ExecutorError(f"Hermes executor timed out after {timeout} seconds")
+
+        # Check cancellation (event signal from async context, or
+        # direct kill via manager.cancel()).
+        if cancel_event is not None and cancel_event.is_set():
+            proc.kill()
+            proc.communicate()
+            raise ExecutorCanceled("Task canceled while executor process was running")
+
+        try:
+            stdout, stderr = proc.communicate(timeout=min(1.0, remaining))
+            return stdout, stderr, proc.returncode
+        except subprocess.TimeoutExpired:
+            continue
+
+
 async def execute(
     prompt: str,
     config: dict[str, Any],
     task_id: str | None = None,
     manager: ExecutorManager | None = None,
 ) -> str:
+    """Execute a Hermes prompt in a subprocess via a thread pool.
+
+    The subprocess runs synchronously in an executor thread so that the
+    bridge's asyncio event loop is never involved in subprocess creation
+    or teardown.  This sidesteps the nested-event-loop C-extension
+    SIGABRT described in issue #3.
+    """
     limits = config.get("limits", {})
-    executor = config.get("executor", {})
-    max_chars = int(min(limits.get("max_prompt_chars", 20000), executor.get("max_prompt_chars", 20000)))
+    executor_cfg = config.get("executor", {})
+    max_chars = int(
+        min(
+            limits.get("max_prompt_chars", 20000),
+            executor_cfg.get("max_prompt_chars", 20000),
+        )
+    )
     if len(prompt) > max_chars:
         raise ExecutorError(f"Prompt exceeds the {max_chars} character limit")
+
     argv = command_argv(config, prompt)
-    timeout = int(executor.get("timeout_seconds", limits.get("task_timeout_seconds", 300)))
-    process = None
+    timeout = int(
+        executor_cfg.get("timeout_seconds", limits.get("task_timeout_seconds", 300))
+    )
+
+    loop = asyncio.get_running_loop()
+    cancel_event: threading.Event | None = None
     canceled_by_manager = False
+
+    if task_id is not None and manager is not None:
+        cancel_event = threading.Event()
+        await manager.register(task_id, cancel_event)
+
     try:
-        process = await asyncio.create_subprocess_exec(
-            *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        stdout, stderr, returncode = await loop.run_in_executor(
+            None,
+            _run_subprocess_sync,
+            argv,
+            timeout,
+            cancel_event,
+            manager,
+            task_id,
         )
-        if task_id is not None and manager is not None:
-            await manager.register(task_id, process)
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        # Capture cancellation flag before cleanup removes it.
         if task_id is not None and manager is not None:
             canceled_by_manager = await manager.is_cancel_requested(task_id)
     except FileNotFoundError as exc:
         raise ExecutorError(f"Hermes executor was not found: {argv[0]}") from exc
-    except asyncio.TimeoutError as exc:
-        process.kill()
-        await process.communicate()
-        raise ExecutorError(f"Hermes executor timed out after {timeout} seconds") from exc
+    except (ExecutorError, ExecutorCanceled):
+        raise
+    except Exception as exc:
+        raise ExecutorError(f"Hermes executor subprocess failed: {exc}") from exc
     finally:
-        if process is not None and task_id is not None and manager is not None:
-            await manager.unregister(task_id, process)
-    if process.returncode != 0:
+        if task_id is not None and manager is not None:
+            await manager.unregister(task_id)
+
+    if returncode != 0:
         if canceled_by_manager:
             raise ExecutorCanceled("Task canceled while executor process was running")
         detail = redact_secrets(stderr.decode("utf-8", errors="replace")).strip()
         if detail:
             raise ExecutorError(
-                f"Hermes executor failed with exit code {process.returncode}. stderr: {detail[:240]}"
+                f"Hermes executor failed with exit code {returncode}. "
+                f"stderr: {detail[:240]}"
             )
-        raise ExecutorError(f"Hermes executor failed with exit code {process.returncode}")
+        raise ExecutorError(f"Hermes executor failed with exit code {returncode}")
+
     result = stdout.decode("utf-8", errors="replace").strip()
     if not result:
         raise ExecutorError("Hermes executor returned an empty response")

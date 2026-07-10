@@ -21,6 +21,14 @@
 
 ## Unreleased
 
+### Fixed
+- Fixed executor SIGABRT (-6) after extended uptime caused by nested asyncio
+  event loop triggering C-extension abort during Hermes subprocess teardown.
+  The executor now runs synchronously in a thread pool executor, completely
+  avoiding `asyncio.create_subprocess_exec`. Cancellation is preserved via
+  a thread-safe Popen handle store with direct `proc.kill()` support.
+  (Issue #3, reported with thorough diagnosis by a user.)
+
 ## 0.4.7 (2026-06-28)
 
 ### Highlights

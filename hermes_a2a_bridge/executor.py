@@ -64,6 +64,18 @@ def clean_result_text(raw: str) -> str:
         if tail:
             return "\n".join(tail).strip()
 
+    # Rich/TTY output does not always emit session_id. In that form, the final
+    # answer sits after initialization and before the resume/session footer.
+    footer_index = next(
+        (i for i, line in enumerate(lines) if line.strip().startswith("Resume this session with:")),
+        None,
+    )
+    if footer_index is not None:
+        lines = lines[:footer_index]
+    init_indexes = [i for i, line in enumerate(lines) if "Initializing agent..." in line]
+    if init_indexes:
+        lines = lines[init_indexes[-1] + 1 :]
+
     cleaned: list[str] = []
     in_reasoning = False
     for line in lines:
@@ -77,9 +89,11 @@ def clean_result_text(raw: str) -> str:
             continue
         if not value or _BOX_LINE_RE.fullmatch(line):
             continue
+        if "⚕ Hermes" in value:
+            continue
         if value.startswith(_NOISE_PREFIXES):
             continue
-        cleaned.append(line.rstrip())
+        cleaned.append(line[4:] if line.startswith("    ") else line.rstrip())
     return "\n".join(cleaned).strip()
 
 

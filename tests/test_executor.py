@@ -47,6 +47,21 @@ def test_clean_result_text_preserves_plain_evidence():
     assert clean_result_text(raw) == raw
 
 
+def test_clean_result_text_extracts_rich_cli_answer_before_footer():
+    raw = (
+        "Query: Reply exactly OK\n"
+        "Initializing agent...\n"
+        " ─  ⚕ Hermes  ─────────────────\n"
+        "    status: completed\n"
+        "    verification:\n"
+        "      - passed\n"
+        "Resume this session with:\n"
+        "  hermes --resume abc\n"
+        "Session: abc\n"
+    )
+    assert clean_result_text(raw) == "status: completed\nverification:\n  - passed"
+
+
 async def test_execute_cleans_cli_presentation(config):
     config["executor"]["command"] = [
         sys.executable,

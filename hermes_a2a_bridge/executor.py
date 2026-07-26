@@ -8,7 +8,9 @@ interpreter teardown.  See issue #3 for full diagnosis.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import re
 import shlex
 import subprocess
 import threading
@@ -20,6 +22,65 @@ from .errors import ExecutorCanceled, ExecutorError
 
 
 VERIFIED_HERMES_COMMAND = ["hermes", "chat", "-q", "{prompt}"]
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
+_BOX_LINE_RE = re.compile(r"^[\s┌┐└┘├┤┬┴┼─━│┃╭╮╰╯═]+$")
+_NOISE_PREFIXES = (
+    "session_id:",
+    "Hermes Agent v",
+    "Install directory:",
+    "Install method:",
+    "Python:",
+    "OpenAI SDK:",
+)
+
+
+def clean_result_text(raw: str) -> str:
+    """Return the final machine-consumable answer from Hermes CLI stdout.
+
+    Prefer explicit JSON fields when a custom executor emits JSON. For the
+    verified Hermes CLI, remove ANSI/control presentation, reasoning panels,
+    session metadata, and banners while preserving the final answer verbatim.
+    """
+    text = _ANSI_ESCAPE_RE.sub("", raw).replace("\r", "")
+    stripped = text.strip()
+    if not stripped:
+        return ""
+
+    try:
+        payload = json.loads(stripped)
+    except (json.JSONDecodeError, TypeError):
+        payload = None
+    if isinstance(payload, dict):
+        for key in ("resultText", "result_text", "final", "answer", "response"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+    lines = text.splitlines()
+    session_indexes = [i for i, line in enumerate(lines) if line.strip().lower().startswith("session_id:")]
+    if session_indexes:
+        tail = [line for line in lines[session_indexes[-1] + 1 :] if line.strip()]
+        if tail:
+            return "\n".join(tail).strip()
+
+    cleaned: list[str] = []
+    in_reasoning = False
+    for line in lines:
+        value = line.strip()
+        if value.startswith("┌─ Reasoning") or value.startswith("╭─ Reasoning"):
+            in_reasoning = True
+            continue
+        if in_reasoning:
+            if _BOX_LINE_RE.fullmatch(line) or value.startswith(("└", "╰")):
+                in_reasoning = False
+            continue
+        if not value or _BOX_LINE_RE.fullmatch(line):
+            continue
+        if value.startswith(_NOISE_PREFIXES):
+            continue
+        cleaned.append(line.rstrip())
+    return "\n".join(cleaned).strip()
 
 
 class ExecutorManager:
@@ -264,7 +325,7 @@ async def execute(
             )
         raise ExecutorError(f"Hermes executor failed with exit code {returncode}")
 
-    result = stdout.decode("utf-8", errors="replace").strip()
+    result = clean_result_text(stdout.decode("utf-8", errors="replace"))
     if not result:
         raise ExecutorError("Hermes executor returned an empty response")
     return result

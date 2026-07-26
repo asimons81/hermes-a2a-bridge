@@ -153,9 +153,10 @@ class ExecutorManager:
         """
         async with self._lock:
             self._cancel_requested.add(task_id)
-        # Kill the Popen handle directly (thread-safe).
+        # Remove the handle atomically so callers observe cancellation as soon
+        # as cancel() returns; the executor thread retains its local Popen.
         with self._proc_lock:
-            proc = self._processes.get(task_id)
+            proc = self._processes.pop(task_id, None)
         if proc is not None:
             try:
                 proc.kill()

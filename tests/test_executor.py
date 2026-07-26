@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from hermes_a2a_bridge.executor import ExecutorManager, command_argv, execute
+from hermes_a2a_bridge.executor import ExecutorManager, clean_result_text, command_argv, execute
 from hermes_a2a_bridge.errors import ExecutorCanceled, ExecutorError
 
 
@@ -25,6 +25,51 @@ async def test_execute_returns_stdout(config):
     ]
     result = await execute("hello", config)
     assert result == "hello"
+
+
+def test_clean_result_text_extracts_final_after_session_id():
+    raw = (
+        "\x1b[36m┌─ Reasoning ───┐\x1b[0m\r\n"
+        "internal chain text\r\n"
+        "└───────────────────┘\r\n"
+        "session_id: 20260726_deadbeef\r\n"
+        "First line\r\nSecond line\r\n"
+    )
+    assert clean_result_text(raw) == "First line\nSecond line"
+
+
+def test_clean_result_text_prefers_structured_final():
+    assert clean_result_text('{"resultText":"clean answer","debug":"noise"}') == "clean answer"
+
+
+def test_clean_result_text_preserves_plain_evidence():
+    raw = "status: completed\ncommands_run:\n  - hermes --version\nverification: passed"
+    assert clean_result_text(raw) == raw
+
+
+def test_clean_result_text_extracts_rich_cli_answer_before_footer():
+    raw = (
+        "Query: Reply exactly OK\n"
+        "Initializing agent...\n"
+        " ─  ⚕ Hermes  ─────────────────\n"
+        "    status: completed\n"
+        "    verification:\n"
+        "      - passed\n"
+        "Resume this session with:\n"
+        "  hermes --resume abc\n"
+        "Session: abc\n"
+    )
+    assert clean_result_text(raw) == "status: completed\nverification:\n  - passed"
+
+
+async def test_execute_cleans_cli_presentation(config):
+    config["executor"]["command"] = [
+        sys.executable,
+        "-c",
+        "print('┌─ Reasoning ─┐\\nnoise\\n└──────────────┘\\nsession_id: abc\\nFINAL')",
+        "{prompt}",
+    ]
+    assert await execute("hello", config) == "FINAL"
 
 
 async def test_executor_cleans_up_state_after_normal_completion(config):

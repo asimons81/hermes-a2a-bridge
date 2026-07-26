@@ -679,7 +679,11 @@ async def message_send(request: web.Request) -> web.Response:
         return parsed
     message, text, input_file_references = parsed
     task, _ = _new_task(request.app, message, input_file_references)
-    result = wire(await _run_task(request.app, task, text))
+    execution = _track_background(request.app, _run_task(request.app, task, text), task_id=task.id)
+    try:
+        result = wire(await asyncio.wait_for(asyncio.shield(execution), timeout=0.05))
+    except asyncio.TimeoutError:
+        result = wire(task)
     if request.headers.get("A2A-Version", "").startswith("1."):
         return web.json_response({"task": result}, content_type="application/a2a+json")
     return web.json_response(result)

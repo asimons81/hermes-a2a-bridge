@@ -66,6 +66,39 @@ async def test_message_requires_auth(server_client):
     assert (await client.post("/message:send", json={})).status == 401
 
 
+async def test_message_send_returns_submitted_before_executor_finishes(server_client, monkeypatch):
+    executor_started = asyncio.Event()
+    release_executor = asyncio.Event()
+
+    async def delayed(prompt, config, task_id=None, manager=None):
+        executor_started.set()
+        await release_executor.wait()
+        return "done"
+
+    monkeypatch.setattr("hermes_a2a_bridge.server.execute", delayed)
+    client, store = server_client
+    response = await asyncio.wait_for(
+        client.post(
+            "/message:send",
+            headers={"Authorization": "Bearer test-secret-token"},
+            json={"message": {"role": "user", "parts": [{"text": "work"}]}},
+        ),
+        timeout=0.25,
+    )
+    payload = await response.json()
+
+    assert response.status == 200
+    assert payload["status"]["state"] == TaskState.SUBMITTED.value
+    await asyncio.wait_for(executor_started.wait(), timeout=0.25)
+
+    release_executor.set()
+    for _ in range(50):
+        if store.get_task(payload["id"]).status.state == TaskState.COMPLETED:
+            break
+        await asyncio.sleep(0.01)
+    assert store.get_task(payload["id"]).status.state == TaskState.COMPLETED
+
+
 def _stage_file(tmp_path, config, store, content: bytes = b"hello") -> str:
     tmp_path.mkdir(parents=True, exist_ok=True)
     config["files"]["storage_dir"] = str(tmp_path / "controlled-storage")
@@ -439,8 +472,14 @@ async def test_data_only_message_send_validates_and_creates_task(server_client, 
     )
     task = await response.json()
     assert response.status == 200
-    assert task["status"]["state"] == "TASK_STATE_COMPLETED"
     assert task["history"][0]["parts"][0]["data"] == {"alpha": 1, "beta": [2]}
+    store = server_client[1]
+    for _ in range(50):
+        persisted = store.get_task(task["id"])
+        if persisted.status.state == TaskState.COMPLETED:
+            break
+        await asyncio.sleep(0.01)
+    assert persisted.status.state == TaskState.COMPLETED
     assert "Data part 1:" in seen["prompt"]
     assert '"alpha": 1' in seen["prompt"]
 

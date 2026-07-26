@@ -472,8 +472,14 @@ async def test_data_only_message_send_validates_and_creates_task(server_client, 
     )
     task = await response.json()
     assert response.status == 200
-    assert task["status"]["state"] == "TASK_STATE_COMPLETED"
     assert task["history"][0]["parts"][0]["data"] == {"alpha": 1, "beta": [2]}
+    store = server_client[1]
+    for _ in range(50):
+        persisted = store.get_task(task["id"])
+        if persisted.status.state == TaskState.COMPLETED:
+            break
+        await asyncio.sleep(0.01)
+    assert persisted.status.state == TaskState.COMPLETED
     assert "Data part 1:" in seen["prompt"]
     assert '"alpha": 1' in seen["prompt"]
 

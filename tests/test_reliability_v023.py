@@ -73,7 +73,12 @@ async def test_execution_failure_and_lease_acquisition_failure_are_clear(config,
             json={"message": {"role": "user", "parts": [{"text": "fail"}]}},
         )
         payload = await response.json()
-        assert payload["status"]["state"] == TaskState.FAILED.value
+        for _ in range(50):
+            task = store.get_task(payload["id"])
+            if task.status.state == TaskState.FAILED:
+                break
+            await asyncio.sleep(0.01)
+        assert task.status.state == TaskState.FAILED
         assert store.get_task_lease(payload["id"]) is None
 
         task, request = _task("contended")

@@ -242,7 +242,14 @@ def _run_subprocess_sync(
     triggers a C-extension SIGABRT when the Hermes subprocess shuts
     down inside a parent that already has a busy asyncio event loop.
     """
-    proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    env = os.environ.copy()
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    proc = subprocess.Popen(
+        argv,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+    )
     if manager is not None and task_id is not None:
         manager.register_process(task_id, proc)
 

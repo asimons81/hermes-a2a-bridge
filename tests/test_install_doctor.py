@@ -19,7 +19,7 @@ def _mock_entry_points(monkeypatch, entries):
     monkeypatch.setattr(install_doctor, "_entry_points", lambda: entries)
 
 
-def _mock_package(monkeypatch, *, importable=True, version="0.5.0"):
+def _mock_package(monkeypatch, *, importable=True, version="0.4.8"):
     monkeypatch.setattr(
         install_doctor,
         "check_package",
@@ -143,7 +143,7 @@ def test_json_output_stable(monkeypatch, tmp_path, capsys):
 
     assert code == 0
     assert payload["ok"] is True
-    assert payload["package"] == {"importable": True, "version": "0.5.0"}
+    assert payload["package"] == {"importable": True, "version": "0.4.8"}
     assert payload["entry_point"]["name"] == "a2a-bridge"
     assert payload["activation"]["enabled"] is True
     assert payload["next_steps"] == [

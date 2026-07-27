@@ -19,29 +19,15 @@
 - Fast fake peer is dev/test-only, local-only, and not real-world interop proof.
 - Upstream Hermes PR #54150 is not required and is not merged.
 
-## 0.5.0 - 2026-07-27
-
-### Highlights
-
-- **Non-blocking message sends** — `message:send` returns the accepted task immediately instead of blocking until executor completion. Agents and operators receive prompt feedback while tasks execute in the background. (#4)
-- **Clean executor output** — Added `clean_result_text()` that strips ANSI escapes, Rich/TTY CLI framing, reasoning panels, session metadata, and noise banners from Hermes executor output. Custom executors emitting JSON with `resultText`/`result_text`/`final`/`answer`/`response` keys are detected and unwrapped automatically.
-- **Executor stability** — Rewrote the executor to use synchronous `subprocess.Popen` in a thread pool instead of `asyncio.create_subprocess_exec`, fixing a SIGABRT (-6) crash after extended uptime. Cancellation preserved via thread-safe `ExecutorManager` with direct `proc.kill()` support. (#3)
-- **Public readiness** — Added SECURITY.md with reporting and redaction guidance, fixed README Authorization header examples, labeled test-only peers as source-checkout-only, and aligned CONTRIBUTING.md with current CI workflow versions.
-- **Cross-platform test hardening** — Executor and async tests now run reliably across Linux and Windows without platform-specific assumptions.
+## Unreleased
 
 ### Fixed
-- Fixed executor SIGABRT (-6) after extended uptime caused by nested asyncio event loop triggering C-extension abort during Hermes subprocess teardown. The executor now runs synchronously in a thread pool executor, completely avoiding `asyncio.create_subprocess_exec`. Cancellation is preserved via a thread-safe Popen handle store with direct `proc.kill()` support. (Issue #3, reported with thorough diagnosis by a user.)
-- Fixed message sends blocking until executor completion. Sends now return the accepted task immediately for prompt agent/operator feedback. (#4)
-- Fixed Hermes CLI output carrying ANSI escapes, reasoning panels, and Rich/TTY session framing into A2A task result text. Output is now cleaned to machine-consumable plain text.
-
-### Changed
-- Cancelled executor handles are now removed atomically on cancellation so callers observe cancellation immediately rather than on next poll.
-- Subprocess environment includes explicit `PYTHONIOENCODING=utf-8` for consistent output encoding across platforms.
-
-### Limitations
-- Non-blocking sends do not change task lifecycle semantics; tasks complete asynchronously and consumers must poll or subscribe for results.
-- Output cleaning targets the verified Hermes CLI executor. Custom executors with unrecognized output structures may still produce unfiltered text.
-- Executor thread-pool model requires the event loop to be running; synchronous callers must provide their own worker thread.
+- Fixed executor SIGABRT (-6) after extended uptime caused by nested asyncio
+  event loop triggering C-extension abort during Hermes subprocess teardown.
+  The executor now runs synchronously in a thread pool executor, completely
+  avoiding `asyncio.create_subprocess_exec`. Cancellation is preserved via
+  a thread-safe Popen handle store with direct `proc.kill()` support.
+  (Issue #3, reported with thorough diagnosis by a user.)
 
 ## 0.4.7 (2026-06-28)
 

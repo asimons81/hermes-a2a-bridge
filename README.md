@@ -6,9 +6,9 @@
 
 `hermes-a2a-bridge` is a thin, local-first bridge for HTTP+JSON agent calls with text parts and bounded structured JSON data parts. It lets Hermes discover named remote agents and exposes Hermes itself through a deliberately small A2A-shaped surface. It does not claim full A2A compliance.
 
-![Hermes A2A Bridge v0.5.0 hero showing the cyberpunk-styled Hermes figure, Peer Doctor diagnostics badge, Agent network, and A2A bridge imagery.](docs/assets/hermes-a2a-bridge-hero.png)
+![Hermes A2A Bridge v0.4.8 hero showing the cyberpunk-styled Hermes figure, Peer Doctor diagnostics badge, Agent network, and A2A bridge imagery.](docs/assets/hermes-a2a-bridge-hero.png)
 
-Current version: **v0.5.0**.
+Current version: **v0.4.8**.
 
 ## Install
 

@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -22,6 +23,70 @@ def test_tasks_and_registry_round_trip(tmp_path):
     assert store.registry_list()[0]["hasToken"] is True
     assert "token" not in store.registry_list()[0]
     assert store.registry_remove("demo") is True
+
+
+def test_insert_task_if_absent_is_atomic_across_simultaneous_writers(tmp_path):
+    path = tmp_path / "idempotency.sqlite3"
+    stores = [Store(path), Store(path)]
+    message = Message(role="user", parts=[{"text": "hello"}])
+    task = Task(id="deterministic-task", contextId="ctx", status=TaskStatus(state=TaskState.SUBMITTED), history=[message])
+    request = {"message": message.model_dump(by_alias=True, mode="json")}
+    barrier = threading.Barrier(2)
+    results = []
+
+    def insert(store):
+        barrier.wait()
+        results.append(store.insert_task_if_absent(task, request))
+
+    threads = [threading.Thread(target=insert, args=(store,)) for store in stores]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(results) == [False, True]
+    assert len(stores[0].list_tasks()) == 1
+
+
+def test_admit_task_enforces_pending_limit_across_simultaneous_writers(tmp_path):
+    path = tmp_path / "queue.sqlite3"
+    stores = [Store(path), Store(path)]
+    message = Message(role="user", parts=[{"text": "hello"}])
+    request = {"message": message.model_dump(by_alias=True, mode="json")}
+    barrier = threading.Barrier(2)
+    results = []
+
+    def admit(index, store):
+        task = Task(
+            id=f"task-{index}", contextId="ctx", status=TaskStatus(state=TaskState.SUBMITTED), history=[message],
+        )
+        barrier.wait()
+        results.append(store.admit_task(task, request, max_pending_tasks=1))
+
+    threads = [threading.Thread(target=admit, args=(index, store)) for index, store in enumerate(stores)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(results) == ["created", "queue_full"]
+    assert len(stores[0].list_tasks(TaskState.SUBMITTED.value)) == 1
+
+
+def test_admit_task_counts_input_and_auth_required_states_against_limit(tmp_path):
+    store = Store(tmp_path / "queue-states.sqlite3")
+    message = Message(role="user", parts=[{"text": "hello"}])
+    request = {"message": message.model_dump(by_alias=True, mode="json")}
+    waiting = Task(
+        id="input-required", contextId="ctx", status=TaskStatus(state=TaskState.INPUT_REQUIRED), history=[message],
+    )
+    store.insert_task(waiting, request)
+    candidate = Task(
+        id="candidate", contextId="ctx", status=TaskStatus(state=TaskState.SUBMITTED), history=[message],
+    )
+
+    assert store.admit_task(candidate, request, max_pending_tasks=1) == "queue_full"
+    assert store.maintenance_stats()["pending_task_count"] == 1
 
 
 def test_update_missing_task_and_registry_upsert_behavior(tmp_path):

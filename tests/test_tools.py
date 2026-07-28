@@ -60,6 +60,31 @@ async def test_registry_name_resolves_and_token_is_not_echoed(config, monkeypatc
     assert "[REDACTED]" in raw
 
 
+async def test_registry_profile_cache_reuses_verified_endpoint_and_invalidates(config, monkeypatch):
+    tools.registry_profile_cache.clear()
+    tools._store().registry_add("demo", "http://first-registry.test", "secret")
+    card_urls = []
+
+    async def fake_card(url):
+        card_urls.append(url)
+        return {"name": "Demo", "url": "http://verified-agent.test"}
+
+    async def fake_send(base, text, token=None, context_id=None, timeout_seconds=None):
+        assert base == "http://verified-agent.test"
+        return {"id": "t1", "status": {"state": "TASK_STATE_COMPLETED"}}
+
+    monkeypatch.setattr(tools.client, "fetch_agent_card", fake_card)
+    monkeypatch.setattr(tools.client, "send_message", fake_send)
+    await tools.a2a_send_message({"agent_url": "demo", "message": "one"})
+    await tools.a2a_send_message({"agent_url": "demo", "message": "two"})
+    assert card_urls == ["http://first-registry.test"]
+
+    await tools.a2a_registry_add({"name": "demo", "url": "http://second-registry.test"})
+    await tools.a2a_send_message({"agent_url": "demo", "message": "three"})
+    assert card_urls == ["http://first-registry.test", "http://second-registry.test"]
+    tools.registry_profile_cache.clear()
+
+
 async def test_registry_add_validates_name_and_returns_stable_shape():
     payload = json.loads(await tools.a2a_registry_add({"name": "bad name", "url": "http://demo.test"}))
     assert payload["success"] is False

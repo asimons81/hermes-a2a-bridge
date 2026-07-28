@@ -27,9 +27,36 @@ async def server_client(config, tmp_path):
 async def test_public_routes_need_no_auth(server_client):
     client, _ = server_client
     assert (await client.get("/health")).status == 200
+    live = await client.get("/health/live")
+    ready = await client.get("/health/ready")
+    assert live.status == ready.status == 200
+    assert (await live.json())["status"] == "ok"
+    assert (await ready.json())["database"] == "ok"
     response = await client.get("/.well-known/agent-card.json")
     assert response.status == 200
     assert "auth_token" not in str(await response.json())
+
+
+async def test_status_route_requires_auth_and_exposes_safe_operational_counts(server_client):
+    client, store = server_client
+    assert (await client.get("/status")).status == 401
+
+    message = Message(role="user", parts=[{"text": "status check"}])
+    for task_id, state in (("submitted", TaskState.SUBMITTED), ("working", TaskState.WORKING)):
+        store.insert_task(
+            Task(id=task_id, status=TaskStatus(state=state), history=[message]),
+            {"message": message.model_dump(by_alias=True, mode="json")},
+        )
+
+    response = await client.get("/status", headers={"Authorization": "Bearer test-secret-token"})
+    payload = await response.json()
+    assert response.status == 200
+    assert payload["version"]
+    assert payload["tasks"] == {"total": 2, "submitted": 1, "working": 1}
+    assert payload["queue"]["pending"] == 2
+    assert payload["queue"]["active"] == 1
+    assert payload["queue"]["maxPending"] == 1000
+    assert "auth_token" not in json.dumps(payload)
 
 
 def test_server_route_list_has_only_expected_file_routes(config, tmp_path):
@@ -40,12 +67,18 @@ def test_server_route_list_has_only_expected_file_routes(config, tmp_path):
         ("GET", "/files/{file_id}"),
         ("GET", "/files/{file_id}/metadata"),
         ("GET", "/health"),
+        ("GET", "/health/live"),
+        ("GET", "/health/ready"),
+        ("GET", "/status"),
         ("GET", "/tasks"),
         ("GET", "/tasks/{task_id}"),
         ("HEAD", "/.well-known/agent-card.json"),
         ("HEAD", "/files/{file_id}"),
         ("HEAD", "/files/{file_id}/metadata"),
         ("HEAD", "/health"),
+        ("HEAD", "/health/live"),
+        ("HEAD", "/health/ready"),
+        ("HEAD", "/status"),
         ("HEAD", "/tasks"),
         ("HEAD", "/tasks/{task_id}"),
         ("POST", "/message:send"),
@@ -97,6 +130,123 @@ async def test_message_send_returns_submitted_before_executor_finishes(server_cl
             break
         await asyncio.sleep(0.01)
     assert store.get_task(payload["id"]).status.state == TaskState.COMPLETED
+
+
+async def test_message_send_rejects_when_pending_queue_is_full(config, tmp_path):
+    config["limits"]["max_pending_tasks"] = 0
+    store = Store(tmp_path / "queue.sqlite3")
+    client = TestClient(TestServer(create_app(config, store)))
+    await client.start_server()
+    try:
+        response = await client.post(
+            "/message:send",
+            headers={"Authorization": "Bearer test-secret-token"},
+            json={"message": {"role": "user", "parts": [{"text": "work"}]}},
+        )
+        assert response.status == 429
+        payload = await response.json()
+        assert payload["code"] == "queue_full"
+        assert store.list_tasks() == []
+    finally:
+        await client.close()
+
+
+async def test_message_send_reuses_task_for_same_idempotency_key(server_client, monkeypatch):
+    release_executor = asyncio.Event()
+
+    async def delayed(prompt, config, task_id=None, manager=None):
+        await release_executor.wait()
+        return "done"
+
+    monkeypatch.setattr("hermes_a2a_bridge.server.execute", delayed)
+    client, store = server_client
+    headers = {"Authorization": "Bearer test-secret-token", "Idempotency-Key": "retry-123"}
+    body = {"message": {"role": "user", "parts": [{"text": "work"}]}}
+    first = await client.post("/message:send", headers=headers, json=body)
+    second = await client.post("/message:send", headers=headers, json=body)
+    assert (await first.json())["id"] == (await second.json())["id"]
+    assert len(store.list_tasks()) == 1
+    release_executor.set()
+
+
+async def test_message_send_rejects_idempotency_key_reuse_for_different_message(server_client, monkeypatch):
+    async def immediate(prompt, config, task_id=None, manager=None):
+        return "done"
+
+    monkeypatch.setattr("hermes_a2a_bridge.server.execute", immediate)
+    client, _ = server_client
+    headers = {"Authorization": "Bearer test-secret-token", "Idempotency-Key": "conflict-123"}
+    first = await client.post(
+        "/message:send", headers=headers,
+        json={"message": {"role": "user", "parts": [{"text": "first"}]}},
+    )
+    second = await client.post(
+        "/message:send", headers=headers,
+        json={"message": {"role": "user", "parts": [{"text": "different"}]}},
+    )
+
+    assert first.status == 200
+    assert second.status == 409
+    assert (await second.json())["code"] == "idempotency_key_conflict"
+
+
+async def test_message_stream_reuses_task_for_same_idempotency_key(server_client, monkeypatch):
+    release_executor = asyncio.Event()
+    executions = 0
+
+    async def delayed(prompt, config, task_id=None, manager=None):
+        nonlocal executions
+        executions += 1
+        await release_executor.wait()
+        return "done"
+
+    monkeypatch.setattr("hermes_a2a_bridge.server.execute", delayed)
+    client, store = server_client
+    headers = {"Authorization": "Bearer test-secret-token", "Idempotency-Key": "stream-retry-123"}
+    body = {"message": {"role": "user", "parts": [{"text": "work"}]}}
+
+    first = await client.post("/message:stream", headers=headers, json=body)
+    await asyncio.sleep(0)
+    second = await client.post("/message:stream", headers=headers, json=body)
+
+    assert first.status == second.status == 200
+    assert len(store.list_tasks()) == 1
+    assert executions == 1
+    release_executor.set()
+    first_events = _sse_events(await first.text())
+    second_events = _sse_events(await second.text())
+    assert first_events[0]["task"]["id"] == second_events[0]["task"]["id"]
+    assert "stream-retry-123" not in json.dumps(store.get_task(first_events[0]["task"]["id"]).metadata)
+
+
+async def test_message_stream_idempotency_retry_of_pruned_terminal_task_returns_conflict(server_client, monkeypatch):
+    async def immediate(prompt, config, task_id=None, manager=None):
+        return "done"
+
+    monkeypatch.setattr("hermes_a2a_bridge.server.execute", immediate)
+    client, store = server_client
+    headers = {"Authorization": "Bearer test-secret-token", "Idempotency-Key": "pruned-stream-123"}
+    body = {"message": {"role": "user", "parts": [{"text": "work"}]}}
+    first = await client.post("/message:send", headers=headers, json=body)
+    task_id = (await first.json())["id"]
+    assert store.get_task(task_id).status.state == TaskState.COMPLETED
+    with sqlite3.connect(store.path) as conn:
+        conn.execute("DELETE FROM task_events WHERE task_id=?", (task_id,))
+
+    retry = await asyncio.wait_for(client.post("/message:stream", headers=headers, json=body), timeout=0.25)
+
+    assert retry.status == 409
+    assert (await retry.json())["code"] == "no_new_events"
+
+
+async def test_message_stream_rejects_oversized_idempotency_key(server_client):
+    response = await server_client[0].post(
+        "/message:stream",
+        headers={"Authorization": "Bearer test-secret-token", "Idempotency-Key": "x" * 257},
+        json={"message": {"role": "user", "parts": [{"text": "work"}]}},
+    )
+    assert response.status == 400
+    assert (await response.json())["code"] == "invalid_idempotency_key"
 
 
 def _stage_file(tmp_path, config, store, content: bytes = b"hello") -> str:

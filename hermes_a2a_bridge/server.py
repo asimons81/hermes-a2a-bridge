@@ -109,7 +109,7 @@ async def json_error_middleware(request: web.Request, handler):
 
 @web.middleware
 async def auth_middleware(request: web.Request, handler):
-    if request.path in {"/health", "/.well-known/agent-card.json"}:
+    if request.path in {"/health", "/health/live", "/health/ready", "/.well-known/agent-card.json"}:
         return await handler(request)
     config = request.app[CONFIG_KEY]
     server = config["server"]
@@ -122,6 +122,37 @@ async def auth_middleware(request: web.Request, handler):
 
 async def health(request: web.Request) -> web.Response:
     return web.json_response({"status": "ok", "version": __version__})
+
+
+async def health_live(request: web.Request) -> web.Response:
+    return web.json_response({"status": "ok", "version": __version__})
+
+
+async def health_ready(request: web.Request) -> web.Response:
+    try:
+        request.app[STORE_KEY].maintenance_stats()
+    except Exception:
+        return web.json_response({"status": "unavailable", "database": "unavailable"}, status=503)
+    return web.json_response({"status": "ok", "database": "ok", "version": __version__})
+
+
+async def status(request: web.Request) -> web.Response:
+    stats = request.app[STORE_KEY].maintenance_stats()
+    limits = request.app[CONFIG_KEY].get("limits", {})
+    return web.json_response({
+        "version": __version__,
+        "tasks": {
+            "total": stats["task_count"],
+            "submitted": stats.get("submitted_task_count", 0),
+            "working": stats.get("working_task_count", 0),
+        },
+        "queue": {
+            "pending": stats.get("pending_task_count", 0),
+            "active": stats.get("active_task_count", 0),
+            "maxPending": int(limits.get("max_pending_tasks", 1000)),
+            "maxConcurrent": int(limits.get("max_concurrent_tasks", 1)),
+        },
+    })
 
 
 def _file_error(message: str, status: int, code: str) -> web.Response:
@@ -481,19 +512,27 @@ def _new_task(
     app: web.Application,
     message: Message,
     input_file_references: list[dict[str, Any]] | None = None,
-) -> tuple[Task, dict[str, Any]]:
+    task_id: str | None = None,
+) -> tuple[Task | None, dict[str, Any] | None, bool, bool]:
     store = app[STORE_KEY]
     metadata = {}
     if input_file_references:
         metadata["inputFileReferences"] = input_file_references
     task = Task(
-        id=str(uuid.uuid4()), contextId=message.context_id or str(uuid.uuid4()),
+        id=task_id or str(uuid.uuid4()), contextId=message.context_id or str(uuid.uuid4()),
         status=TaskStatus(state=TaskState.SUBMITTED), history=[message], metadata=metadata,
     )
-    store.insert_task(task, {"message": wire(message)})
+    max_pending_tasks = int(app[CONFIG_KEY].get("limits", {}).get("max_pending_tasks", 1000))
+    admission = store.admit_task(task, {"message": wire(message)}, max_pending_tasks)
+    if admission == "queue_full":
+        return None, None, False, True
     task = store.get_task(task.id)
+    if task is None:
+        raise RuntimeError("Task admission completed without a durable task record")
+    if admission == "existing":
+        return task, None, False, False
     initial = _persist_event(app, task.id, wire(StreamResponse(task=task)))
-    return task, initial
+    return task, initial, True, False
 
 
 def _status_event(task: Task, *, final: bool = False) -> dict[str, Any]:
@@ -673,12 +712,56 @@ async def _honor_cancellation_request(
     return True
 
 
+def _idempotency_task_id(request: web.Request) -> str | None:
+    key = request.headers.get("Idempotency-Key")
+    if not key:
+        return None
+    if len(key) > 256:
+        raise ValueError("Idempotency-Key must be at most 256 characters")
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"hermes-a2a-bridge-idempotency:{key}"))
+
+
+def _idempotency_message_matches(task: Task, message: Message) -> bool:
+    if not task.history:
+        return False
+    existing = wire(task.history[0])
+    incoming = wire(message)
+    existing.pop("messageId", None)
+    incoming.pop("messageId", None)
+    return existing == incoming
+
+
+def _message_send_response(request: web.Request, task: Task) -> web.Response:
+    result = wire(task)
+    if request.headers.get("A2A-Version", "").startswith("1."):
+        return web.json_response({"task": result}, content_type="application/a2a+json")
+    return web.json_response(result)
+
+
 async def message_send(request: web.Request) -> web.Response:
     parsed = await _parse_message_request(request)
     if isinstance(parsed, web.Response):
         return parsed
+    try:
+        idempotency_task_id = _idempotency_task_id(request)
+    except ValueError as exc:
+        return _json_error(str(exc), 400, "invalid_idempotency_key")
     message, text, input_file_references = parsed
-    task, _ = _new_task(request.app, message, input_file_references)
+    if idempotency_task_id and (existing := request.app[STORE_KEY].get_task(idempotency_task_id)):
+        if not _idempotency_message_matches(existing, message):
+            return _json_error(
+                "Idempotency-Key was already used for a different message.",
+                409,
+                "idempotency_key_conflict",
+            )
+        return _message_send_response(request, existing)
+    task, _, created, queue_full = _new_task(request.app, message, input_file_references, idempotency_task_id)
+    if queue_full:
+        return _json_error("Task queue is full; retry later.", 429, "queue_full")
+    if task is None:
+        raise RuntimeError("Task admission returned neither a task nor a queue-full result")
+    if not created:
+        return _message_send_response(request, task)
     execution = _track_background(request.app, _run_task(request.app, task, text), task_id=task.id)
     try:
         result = wire(await asyncio.wait_for(asyncio.shield(execution), timeout=0.05))
@@ -761,16 +844,45 @@ async def message_stream(request: web.Request) -> web.StreamResponse:
     parsed = await _parse_message_request(request)
     if isinstance(parsed, web.Response):
         return parsed
-    message, text, input_file_references = parsed
+    try:
+        idempotency_task_id = _idempotency_task_id(request)
+    except ValueError as exc:
+        return _json_error(str(exc), 400, "invalid_idempotency_key")
+    store = request.app[STORE_KEY]
     broker = request.app[EVENT_BROKER_KEY]
-    task, initial = _new_task(request.app, message, input_file_references)
+    message, text, input_file_references = parsed
+    if idempotency_task_id and (existing := store.get_task(idempotency_task_id)):
+        if not _idempotency_message_matches(existing, message):
+            return _json_error(
+                "Idempotency-Key was already used for a different message.",
+                409,
+                "idempotency_key_conflict",
+            )
+        replay = [event.envelope() for event in store.list_task_events(existing.id)]
+        if existing.status.state in TERMINAL_STATES:
+            if not replay:
+                return _json_error("No stored events are available for this completed task", 409, "no_new_events")
+            return await _stream_queue(request, existing.id, None, replay=replay)
+        queue = broker.subscribe(existing.id)
+        return await _stream_queue(request, existing.id, queue, replay=replay)
+    task, initial, created, queue_full = _new_task(request.app, message, input_file_references, idempotency_task_id)
+    if queue_full:
+        return _json_error("Task queue is full; retry later.", 429, "queue_full")
+    if task is None:
+        raise RuntimeError("Task admission returned neither a task nor a queue-full result")
     queue = broker.subscribe(task.id)
-    _track_background(request.app, _run_task(request.app, task, text), task_id=task.id)
+    if created:
+        _track_background(request.app, _run_task(request.app, task, text), task_id=task.id)
+        if initial is None:
+            raise RuntimeError("Created task has no initial stream event")
+        replay = [initial]
+    else:
+        replay = [event.envelope() for event in store.list_task_events(task.id)]
     return await _stream_queue(
         request,
         task.id,
         queue,
-        replay=[initial],
+        replay=replay,
     )
 
 
@@ -947,6 +1059,9 @@ def create_app(config: dict[str, Any], store: Store | None = None) -> web.Applic
     app.on_startup.append(_startup_maintenance)
     app.on_cleanup.append(_cleanup_background)
     app.router.add_get("/health", health)
+    app.router.add_get("/health/live", health_live)
+    app.router.add_get("/health/ready", health_ready)
+    app.router.add_get("/status", status)
     app.router.add_get("/.well-known/agent-card.json", agent_card)
     app.router.add_get("/files/{file_id}/metadata", file_metadata_get)
     app.router.add_get("/files/{file_id}", file_bytes_get)

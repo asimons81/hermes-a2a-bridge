@@ -1,14 +1,20 @@
 # Hermes A2A Bridge
 
 [![CI](https://github.com/asimons81/hermes-a2a-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/asimons81/hermes-a2a-bridge/actions/workflows/ci.yml)
+[![X Follow](https://img.shields.io/twitter/follow/tonysimons_?style=social)](https://x.com/tonysimons_)
+[![PyPI version](https://img.shields.io/pypi/v/hermes-a2a-bridge)](https://pypi.org/project/hermes-a2a-bridge/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Built By](https://img.shields.io/badge/built%20by-@tonysimons_-blue?style=flat&logo=x)](https://x.com/tonysimons_)
 
-> MCP lets agents use tools. A2A lets agents call other agents. Hermes A2A Bridge gives Hermes the second half.
+> MCP lets your AI tie its own shoes. A2A lets it call another AI for help when the shoes get complicated.
 
-`hermes-a2a-bridge` is a thin, local-first bridge for HTTP+JSON agent calls with text parts and bounded structured JSON data parts. It lets Hermes discover named remote agents and exposes Hermes itself through a deliberately small A2A-shaped surface. It does not claim full A2A compliance.
+`hermes-a2a-bridge` is a thin, local-first bridge that lets Hermes Agent call other agents and expose itself as one too — HTTP+JSON, text and structured data parts, SSE streaming, durable replay, the works. It's an **A2A-shaped surface**: it talks the Google A2A protocol well enough to have a real conversation, but if you walk in expecting full compliance badges, you're going to be disappointed. We call that honest, not incomplete.
 
-![Hermes A2A Bridge v0.5.0 hero showing the cyberpunk-styled Hermes figure, Peer Doctor diagnostics badge, Agent network, and A2A bridge imagery.](docs/assets/hermes-a2a-bridge-hero.png)
+![Hermes A2A Bridge v0.5.0 — Hermes figure, diagnostics badge, agent network, and bridge imagery](docs/assets/hermes-a2a-bridge-hero.png)
 
 Current version: **v0.5.0**.
+
+Made by [@tonysimons_](https://x.com/tonysimons_) — building things so your agents don't have to text each other in DMs.
 
 ## Install
 

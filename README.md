@@ -6,9 +6,9 @@
 
 `hermes-a2a-bridge` is a thin, local-first bridge for HTTP+JSON agent calls with text parts and bounded structured JSON data parts. It lets Hermes discover named remote agents and exposes Hermes itself through a deliberately small A2A-shaped surface. It does not claim full A2A compliance.
 
-![Hermes A2A Bridge v0.4.8 hero showing the cyberpunk-styled Hermes figure, Peer Doctor diagnostics badge, Agent network, and A2A bridge imagery.](docs/assets/hermes-a2a-bridge-hero.png)
+![Hermes A2A Bridge v0.5.0 hero showing the cyberpunk-styled Hermes figure, Peer Doctor diagnostics badge, Agent network, and A2A bridge imagery.](docs/assets/hermes-a2a-bridge-hero.png)
 
-Current version: **v0.4.8**.
+Current version: **v0.5.0**.
 
 ## Install
 
@@ -51,13 +51,19 @@ The upstream Hermes Agent `hermes plugins list/enable` discovery improvement for
 ## Quickstart
 
 ```bash
-hermes a2a init
+hermes a2a setup
+hermes a2a status
+hermes a2a maintenance doctor --json
 hermes a2a card --json
 hermes a2a serve
 curl http://127.0.0.1:8765/.well-known/agent-card.json
 ```
 
-The first run creates `~/.hermes/a2a/config.yaml` and `~/.hermes/a2a/tasks.sqlite3`. By default the bridge binds to `127.0.0.1:8765`, requires bearer auth for task endpoints, and uses the verified one-shot argv:
+`hermes a2a setup` explicitly creates `~/.hermes/a2a/config.yaml` and `~/.hermes/a2a/tasks.sqlite3`; `init` remains available as a compatibility alias. `hermes a2a status` is read-only and reports local task, event, registry, and SQLite operational counts. By default the bridge binds to `127.0.0.1:8765`, requires bearer auth for task endpoints, and uses the verified one-shot argv:
+
+`GET /health/live` and `GET /health/ready` are unauthenticated liveness/readiness probes. `GET /status` requires the bearer token and returns safe task and queue counts only. `hermes a2a maintenance doctor` is read-only: it checks SQLite metadata, loaded configuration, durable event state, and lease expiry without pruning, recovery, or cancellation expiry.
+
+For retried `message:send` or `message:stream` requests, send an `Idempotency-Key` header (maximum 256 characters). The bridge deterministically reuses one durable task and never stores or returns the raw key. Named registry peers cache their verified Agent Card endpoint for 60 seconds; the cache contains no token and is invalidated on registry add/update/remove.
 
 ```text
 hermes chat -q {prompt}
@@ -67,6 +73,13 @@ If you set `executor.command: null`, tasks fail cleanly with:
 
 ```text
 No Hermes executor command configured. Set executor.command in ~/.hermes/a2a/config.yaml
+```
+
+For short remote jobs, use `send --wait` to poll until a terminal state, or `send --follow` to submit through the peer's SSE stream and print updates as they arrive. `--wait` accepts bounded `--timeout` and `--poll-interval` values; `--follow` and `--wait` are mutually exclusive.
+
+```bash
+hermes a2a send peer "review this patch" --wait --timeout 120
+hermes a2a send peer "review this patch" --follow
 ```
 
 ## Peer Doctor Quick Checks
@@ -234,6 +247,8 @@ curl -H "Authorization: Bearer $A2A_TOKEN" \
 ```text
 hermes-a2a-bridge doctor-install [--config PATH] [--json]
 hermes a2a init
+hermes a2a setup [--json]
+hermes a2a status [--json]
 hermes a2a card [--json]
 hermes a2a serve [--host HOST] [--port PORT]
 hermes a2a token rotate [--show-token] [--json]
@@ -256,12 +271,13 @@ hermes a2a files cleanup-orphans [--dry-run] [--confirm] [--json]
 hermes a2a files repair [--dry-run] [--confirm] [--json]
 hermes a2a files stats [--json]
 hermes a2a maintenance stats [--json]
+hermes a2a maintenance doctor [--json]
 hermes a2a maintenance prune-events [--json]
 hermes a2a maintenance recover-stale [--json]
 hermes a2a maintenance leases [--json]
 hermes a2a maintenance cancellations [--json]
 hermes a2a maintenance recover-leases [--json]
-hermes a2a send AGENT_OR_URL MESSAGE [--file-id FILE_ID]... [--token TOKEN] [--json]
+hermes a2a send AGENT_OR_URL MESSAGE [--file-id FILE_ID]... [--token TOKEN] [--wait | --follow] [--timeout N] [--poll-interval N] [--json]
 hermes a2a stream AGENT_OR_URL MESSAGE [--file-id FILE_ID]... [--token TOKEN] [--json]
 hermes a2a subscribe TASK_ID [--agent AGENT_OR_URL] [--token TOKEN] [--last-event-id ID] [--json]
 hermes a2a tasks [--agent AGENT_OR_URL] [--token TOKEN] [--json]
@@ -289,6 +305,7 @@ Notes:
 - `registry list --json` reports `hasToken` and never prints token values.
 - `--file-id` appends stored file ID reference parts only, shaped as `{ "file": { "fileId": "file_..." } }`. The target server must explicitly enable both `parts.allow_file_parts: true` and `parts.allow_file_id_references: true`.
 - `send --file` and `stream --file` are **not** supported. The CLI does not read local files, stage files automatically, fetch remote URLs, or embed file bytes for send/stream requests.
+- `send --wait` polls a remote task until it reaches a terminal state; `send --follow` opens the remote `message:stream` endpoint and renders bounded SSE updates. They are mutually exclusive.
 - `token rotate` does not print the new token unless `--show-token` is used.
 
 ## Local File Staging and Retrieval

@@ -76,7 +76,7 @@ If you need to understand which file-boundary assertions exist, read `docs/FILE_
 
 ## Package metadata
 
-- Version: `0.4.8` (in `pyproject.toml`, `plugin.yaml`, and runtime `__version__`)
+- Version: `0.5.0` (in `pyproject.toml`, `plugin.yaml`, and runtime `__version__`)
 - Python: `>=3.11,<4.0`
 - Entry point: `hermes_agent.plugins` → `a2a-bridge = hermes_a2a_bridge`
 - Standalone helper: `hermes-a2a-bridge doctor-install` and `python -m hermes_a2a_bridge doctor-install`

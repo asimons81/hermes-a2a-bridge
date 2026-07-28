@@ -904,6 +904,21 @@ class Store:
     def maintenance_stats(self, lease_warning_seconds: int | float = 20) -> dict[str, Any]:
         with self._connect() as conn:
             task_count = int(conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0])
+            task_state_counts = conn.execute(
+                """SELECT
+                    COALESCE(SUM(state=?), 0) AS submitted,
+                    COALESCE(SUM(state=?), 0) AS working,
+                    COALESCE(SUM(state NOT IN (?, ?, ?, ?)), 0) AS pending
+                   FROM tasks""",
+                (
+                    TaskState.SUBMITTED.value,
+                    TaskState.WORKING.value,
+                    TaskState.COMPLETED.value,
+                    TaskState.FAILED.value,
+                    TaskState.CANCELED.value,
+                    TaskState.REJECTED.value,
+                ),
+            ).fetchone()
             registry_count = int(conn.execute("SELECT COUNT(*) FROM registry").fetchone()[0])
             lease_count = int(conn.execute("SELECT COUNT(*) FROM task_leases").fetchone()[0])
             journal_mode = str(conn.execute("PRAGMA journal_mode").fetchone()[0])
@@ -931,6 +946,10 @@ class Store:
             "busy_timeout_ms": busy_timeout_ms,
             "synchronous": synchronous,
             "task_count": task_count,
+            "submitted_task_count": int(task_state_counts["submitted"]),
+            "working_task_count": int(task_state_counts["working"]),
+            "pending_task_count": int(task_state_counts["pending"]),
+            "active_task_count": int(task_state_counts["working"]),
             "event_count": self.count_task_events(),
             "registry_count": registry_count,
             "lease_count": lease_count,
@@ -978,6 +997,55 @@ class Store:
                 (task.id, task.context_id, task.status.state.value, now, now,
                  json.dumps(request), None, None, json.dumps(task.metadata)),
             )
+
+    def insert_task_if_absent(self, task: Task, request: dict[str, Any]) -> bool:
+        """Persist a task once, returning whether this caller created it."""
+        now = utc_now()
+
+        def write() -> bool:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    "INSERT OR IGNORE INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (task.id, task.context_id, task.status.state.value, now, now,
+                     json.dumps(request), None, None, json.dumps(task.metadata)),
+                )
+            return cursor.rowcount > 0
+
+        return self.run_with_sqlite_retry(write, label="idempotent task insert")
+
+    def admit_task(self, task: Task, request: dict[str, Any], max_pending_tasks: int) -> str:
+        """Atomically create a task or report an existing task/full queue.
+
+        SQLite serializes the count-and-insert decision so multiple bridge
+        processes sharing one database cannot over-admit the pending queue.
+        """
+        now = utc_now()
+
+        def write() -> str:
+            with self._connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                if conn.execute("SELECT 1 FROM tasks WHERE id=?", (task.id,)).fetchone():
+                    return "existing"
+                if max_pending_tasks >= 0:
+                    pending = int(conn.execute(
+                        "SELECT COUNT(*) FROM tasks WHERE state NOT IN (?, ?, ?, ?)",
+                        (
+                            TaskState.COMPLETED.value,
+                            TaskState.FAILED.value,
+                            TaskState.CANCELED.value,
+                            TaskState.REJECTED.value,
+                        ),
+                    ).fetchone()[0])
+                    if pending >= max_pending_tasks:
+                        return "queue_full"
+                conn.execute(
+                    "INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (task.id, task.context_id, task.status.state.value, now, now,
+                     json.dumps(request), None, None, json.dumps(task.metadata)),
+                )
+            return "created"
+
+        return self.run_with_sqlite_retry(write, label="task queue admission")
 
     def update_task(
         self,

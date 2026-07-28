@@ -13,6 +13,8 @@ python -m compileall -q hermes_a2a_bridge tests
 python -m build
 ```
 
+For reliability changes, add a regression test before implementation and cover the real boundary: concurrent SQLite writers for idempotency, SSE replay for stream retries, and no-mutation assertions for read-only maintenance commands.
+
 Optional official SDK tests require an explicit isolated `A2A_SDK_PYTHON` interpreter. They should skip cleanly during normal test runs when that variable is unset.
 
 ## Boundaries

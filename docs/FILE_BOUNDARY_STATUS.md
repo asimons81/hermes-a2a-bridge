@@ -1,6 +1,6 @@
 # File Boundary Status
 
-Current version: 0.4.8.
+Current version: 0.5.0.
 
 This document records the v0.4 stored-file-ID inbound boundary. Hermes A2A Bridge has local file-reference groundwork and now accepts pre-staged local stored file ID references only when explicit gates are enabled. It still does not accept broad inbound A2A file parts or advertise broad file support.
 
@@ -10,7 +10,7 @@ File-boundary-sensitive changes should include focused tests and documentation u
 
 Phase 10 added deterministic local HTTP+JSON compatibility-peer fixtures, including a file-part rejection capture. That fixture is evidence that the boundary remains closed; it does not enable inbound file support.
 
-Version 0.4.0 implements the gated inbound stored-file-ID design in `docs/INBOUND_FILE_PARTS_DESIGN.md`. Version 0.4.1 adds CLI `send --file-id` and `stream --file-id` request construction for stored file IDs only. Version 0.4.2 adds Hermes tool `file_ids` request construction for stored file IDs only. Version 0.4.3 adds local open-gate end-to-end capture and verification for those stored-ID paths. Version 0.4.4 adds gated limited Agent Card metadata for stored-ID references only. Version 0.4.5 refreshes official SDK and public-peer evidence without changing runtime acceptance. Version 0.4.6 completes a release-candidate hardening audit for package metadata, docs wording, CLI/tool surfaces, fixture safety, config defaults, and smoke paths without changing runtime acceptance. Runtime inbound file parts remain closed by default. `/message:send` and `/message:stream` accept only `{ "file": { "fileId": "file_..." } }` when both `parts.allow_file_parts` and `parts.allow_file_id_references` are true.
+Version 0.4.0 implements the gated inbound stored-file-ID design in `docs/INBOUND_FILE_PARTS_DESIGN.md`. Version 0.4.1 adds CLI `send --file-id` and `stream --file-id` request construction for stored file IDs only. Version 0.4.2 adds Hermes tool `file_ids` request construction for stored file IDs only. Version 0.4.3 adds local open-gate end-to-end capture and verification for those stored-ID paths. Version 0.4.4 adds gated limited Agent Card metadata for stored-ID references only. Version 0.4.5 refreshes official SDK and public-peer evidence without changing runtime acceptance. Version 0.4.6 completes a release-candidate hardening audit for package metadata, docs wording, CLI/tool surfaces, fixture safety, config defaults, and smoke paths without changing runtime acceptance. Version 0.5.0 adds operator and reliability controls without expanding file acceptance. Runtime inbound file parts remain closed by default. `/message:send` and `/message:stream` accept only `{ "file": { "fileId": "file_..." } }` when both `parts.allow_file_parts` and `parts.allow_file_id_references` are true.
 
 ## Implemented
 

@@ -767,3 +767,25 @@ def maintenance_stats(store: Store, config: dict[str, Any]) -> dict[str, Any]:
     if observability.get("include_diagnostics_in_stats", True):
         result["lease_diagnostics"] = store.lease_diagnostics(warning)
     return result
+
+
+def maintenance_doctor(store: Store, config: dict[str, Any]) -> dict[str, Any]:
+    """Return a read-only local health report; never expire, recover, or prune."""
+    warning = config.get("observability", {}).get("lease_warning_seconds", 20)
+    stats = store.maintenance_stats(warning)
+    checks = [
+        {"name": "database", "status": "ok", "detail": "SQLite metadata query succeeded."},
+        {"name": "config", "status": "ok", "detail": "Loaded bridge configuration is available."},
+        {
+            "name": "events",
+            "status": "warning" if stats["sqlite_warning_count"] else "ok",
+            "detail": f"{stats['event_count']} durable events; {stats['sqlite_warning_count']} SQLite warnings.",
+        },
+        {
+            "name": "leases",
+            "status": "warning" if stats["expired_lease_count"] else "ok",
+            "detail": f"{stats['lease_count']} leases; {stats['expired_lease_count']} expired.",
+        },
+    ]
+    health = "warning" if any(item["status"] == "warning" for item in checks) else "ok"
+    return {"health": health, "checks": checks}

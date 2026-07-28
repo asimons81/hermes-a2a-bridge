@@ -12,6 +12,7 @@ from .auth import redact_secrets
 from .config import database_path, load_config
 from .diagnostics import diagnose_peer
 from .errors import ClientError
+from .registry_cache import registry_profile_cache
 from .store import Store
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
@@ -37,8 +38,15 @@ def _resolve(value: str, explicit_token: str | None = None) -> tuple[str, str | 
 
 async def _endpoint(value: str, token: str | None) -> tuple[str, str | None]:
     base, token = _resolve(value, token)
+    if urlparse(value).scheme not in {"http", "https"}:
+        ttl_seconds = float(load_config().get("registry_cache", {}).get("profile_ttl_seconds", 60))
+        if endpoint := registry_profile_cache.get(value, base, ttl_seconds=ttl_seconds):
+            return endpoint, token
     card = await client.fetch_agent_card(base)
-    return client.agent_endpoint(card), token
+    endpoint = client.agent_endpoint(card)
+    if urlparse(value).scheme not in {"http", "https"}:
+        registry_profile_cache.put(value, base, endpoint)
+    return endpoint, token
 
 
 def safe_handler(fn: Callable[..., Awaitable[Any]]):
@@ -168,6 +176,7 @@ async def a2a_registry_add(args: dict, **kwargs):
         raise ValueError("Registry names must start with a letter or digit and use only letters, digits, dot, underscore, or hyphen")
     client.require_http_url(args["url"])
     _store().registry_add(args["name"], args["url"], args.get("token"))
+    registry_profile_cache.invalidate(args["name"])
     return {"agent": {"name": args["name"], "url": args["url"], "hasToken": bool(args.get("token"))}}
 
 
@@ -178,7 +187,9 @@ async def a2a_registry_list(args: dict, **kwargs):
 
 @safe_handler
 async def a2a_registry_remove(args: dict, **kwargs):
-    return {"agent": {"name": args["name"], "removed": _store().registry_remove(args["name"])}}
+    removed = _store().registry_remove(args["name"])
+    registry_profile_cache.invalidate(args["name"])
+    return {"agent": {"name": args["name"], "removed": removed}}
 
 
 def _task_text(task: dict[str, Any]) -> str | None:

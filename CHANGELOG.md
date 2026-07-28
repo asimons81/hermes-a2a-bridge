@@ -19,7 +19,13 @@
 - Fast fake peer is dev/test-only, local-only, and not real-world interop proof.
 - Upstream Hermes PR #54150 is not required and is not merged.
 
-## Unreleased
+## 0.5.0 - 2026-07-27
+
+### Added
+- Added `hermes a2a setup`, read-only `hermes a2a status`, `hermes a2a maintenance doctor`, `send --wait`, and `send --follow` operator controls.
+- Added bounded pending-queue admission, deterministic idempotency for `message:send` and `message:stream`, and SQLite conflict-safe task creation.
+- Added verified named-peer Agent Card endpoint caching with TTL and registry mutation invalidation; bearer tokens are never cached.
+- Added `/health/live`, `/health/ready`, and authenticated `/status` operational endpoints.
 
 ### Fixed
 - Fixed executor SIGABRT (-6) after extended uptime caused by nested asyncio
@@ -28,6 +34,12 @@
   avoiding `asyncio.create_subprocess_exec`. Cancellation is preserved via
   a thread-safe Popen handle store with direct `proc.kill()` support.
   (Issue #3, reported with thorough diagnosis by a user.)
+
+### Limitations
+- The bridge remains a deliberately small HTTP+JSON subset; it does not claim full A2A conformance, `/v1`, JSON-RPC, OAuth, signed Agent Cards, gRPC, or public tunneling.
+- File-part defaults remain closed. Only explicitly enabled, pre-staged local stored file IDs are accepted; inline bytes, remote URL inbound references, arbitrary paths, and upload routes remain unsupported.
+- SQLite coordination prevents local shared-database over-admission and duplicate execution, but it is not a distributed queue or broker.
+- `send --wait` polls task state; `send --follow` requires a peer that supports the bridge's bounded SSE stream behavior.
 
 ## 0.4.7 (2026-06-28)
 

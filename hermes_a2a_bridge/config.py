@@ -40,7 +40,7 @@ def default_config() -> dict[str, Any]:
         "agent_card": {
             "name": "Hermes Agent",
             "description": "A local Hermes Agent exposed through the Agent-to-Agent protocol.",
-            "version": "0.4.8",
+            "version": "0.5.0",
             "provider": {"organization": "local", "url": "http://127.0.0.1:8765"},
             "default_input_modes": ["text/plain", "application/json"],
             "default_output_modes": ["text/plain", "application/json"],
@@ -57,7 +57,7 @@ def default_config() -> dict[str, Any]:
             "cancel_grace_seconds": 3,
             "max_prompt_chars": 20000,
         },
-        "limits": {"max_prompt_chars": 20000, "max_concurrent_tasks": 1, "task_timeout_seconds": 300},
+        "limits": {"max_prompt_chars": 20000, "max_concurrent_tasks": 1, "max_pending_tasks": 1000, "task_timeout_seconds": 300},
         "parts": {
             "max_data_part_bytes": 65536,
             "allow_data_parts": True,
@@ -130,6 +130,9 @@ def default_config() -> dict[str, Any]:
             "max_replay_events": 1000,
             "replay_gap_status_code": 409,
             "replay_gap_error_code": "replay_gap",
+        },
+        "registry_cache": {
+            "profile_ttl_seconds": 60,
         },
         "registry": [],
     }

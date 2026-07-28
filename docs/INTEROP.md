@@ -5,7 +5,7 @@ This ledger records black-box A2A interoperability evidence for Hermes A2A Bridg
 ## Environment
 
 - Date: 2026-06-26
-- Bridge version under test: 0.4.8
+- Bridge version under test: 0.5.0
 - Official SDK packages: `a2a-sdk 1.0.3`, `a2a-sdk 1.1.0`
 - SDK install location: isolated temporary venv, not a runtime project dependency
 - SDK extra used: `a2a-sdk[http-server]`
@@ -27,6 +27,7 @@ This ledger records black-box A2A interoperability evidence for Hermes A2A Bridg
 - v0.4.6 release-candidate hardening audit: package metadata, docs wording, CLI/tool surfaces, fixture safety, config defaults, and smoke paths were checked without adding runtime protocol features.
 - v0.4.7 Peer Doctor pass: `hermes a2a doctor` and `a2a_doctor_peer` are metadata-only by default, fetching only a remote Agent Card and classifying likely compatibility with Hermes' HTTP+JSON 1.x subset. Explicit `--live-probe` / `live_probe: true` sends one small diagnostic text message, checks basic `message:send`, and attempts task lookup only if a task ID is returned. Explicit `--live-probe --stream-probe` / `live_probe: true, stream_probe: true` separately sends one small diagnostic text message through `message:stream` and reads a bounded SSE response. The probes do not send files, fetch files, subscribe, cancel tasks, mutate registry state, implement `/v1`, implement JSON-RPC, or prove full A2A conformance.
 - v0.4.7 Hermes host integration pass: Hermes Agent v0.17.0 can load the `a2a-bridge` pip entry-point plugin when `plugins.enabled` includes `a2a-bridge`; that path registers the `a2a` CLI command, the `a2a_bridge` toolset, all nine A2A tools, and the bundled `a2a-bridge` skill. The same host's `hermes plugins list` and `hermes plugins enable a2a-bridge` commands do not currently discover pip entry-point plugins, so direct host CLI use requires manual `plugins.enabled` configuration until Hermes expands plugin-manager discovery.
+- v0.5.0 operator/reliability pass: local setup, read-only status and maintenance doctor, authenticated health/status telemetry, bounded pending admission, idempotent send/stream retries, and named-peer Agent Card endpoint caching were added. These controls do not expand protocol or file-part conformance.
 - Fast local fake peer: `tests/local_http_json_peer.py` now includes a standalone `python -m tests.local_http_json_peer` runner that binds to loopback by default. It provides deterministic Agent Card, send, stream, and task-lookup responses for Peer Doctor smoke tests without relying on a slow executor or external network. It is test/dev-only and is not a real interoperability target.
 
 ## Commands used

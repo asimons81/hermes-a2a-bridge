@@ -67,6 +67,26 @@ def test_registry_list_json_omits_tokens(config, tmp_path, monkeypatch, capsys):
     assert "token" not in payload["agents"][0]
 
 
+def test_maintenance_doctor_is_read_only_and_reports_health(config, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
+    from hermes_a2a_bridge.config import database_path, save_config
+    from hermes_a2a_bridge.models import Message, Task, TaskState, TaskStatus
+    from hermes_a2a_bridge.store import Store
+
+    save_config(config)
+    store = Store(database_path())
+    message = Message(role="user", parts=[{"text": "keep"}])
+    store.insert_task(Task(id="keep", status=TaskStatus(state=TaskState.COMPLETED), history=[message]), {"message": message.model_dump(by_alias=True, mode="json")})
+    before = store.maintenance_stats()
+    args = argparse.Namespace(a2a_command="maintenance", maintenance_command="doctor", json=True)
+
+    assert a2a_command(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["health"] == "ok"
+    assert {check["name"] for check in payload["checks"]} >= {"database", "config", "events"}
+    assert Store(database_path()).maintenance_stats()["task_count"] == before["task_count"]
+
+
 def test_stream_json_prints_one_json_object_per_line(config, tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
     from hermes_a2a_bridge.config import save_config
@@ -371,6 +391,88 @@ def test_send_and_stream_file_id_flags_exist_but_file_flags_do_not():
         parser.parse_args(["send", "http://remote.test", "hello", "--file", "report.txt"])
     with pytest.raises(SystemExit):
         parser.parse_args(["stream", "http://remote.test", "hello", "--file", "report.txt"])
+
+
+def test_setup_and_status_commands_are_exposed():
+    parser = argparse.ArgumentParser()
+    cli.register_cli(parser)
+
+    assert parser.parse_args(["setup", "--json"]).a2a_command == "setup"
+    assert parser.parse_args(["status", "--json"]).a2a_command == "status"
+
+
+def test_status_is_read_only_and_reports_local_operational_summary(config, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
+    from hermes_a2a_bridge.config import config_path, database_path, save_config
+    from hermes_a2a_bridge.store import Store
+
+    save_config(config)
+    cancellation = Store(database_path()).create_cancellation_request("task", "requester", "owner", 60)
+    with sqlite3.connect(database_path()) as conn:
+        conn.execute("UPDATE cancellation_requests SET expires_at=? WHERE id=?", ("2000-01-01T00:00:00+00:00", cancellation["id"]))
+    before = config_path().read_text(encoding="utf-8")
+    args = argparse.Namespace(a2a_command="status", json=True)
+
+    assert a2a_command(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["success"] is True
+    assert payload["initialized"] is True
+    assert payload["tasks"] == 0
+    assert config_path().read_text(encoding="utf-8") == before
+    assert Store(database_path()).list_cancellation_requests()[0]["status"] == "pending"
+
+
+def test_send_wait_polls_until_terminal(config, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
+    from hermes_a2a_bridge.config import save_config
+
+    save_config(config)
+    states = iter([
+        {"id": "t1", "status": {"state": "TASK_STATE_WORKING"}},
+        {"id": "t1", "status": {"state": "TASK_STATE_COMPLETED"}},
+    ])
+
+    async def fake_card(url):
+        return {"name": "Remote", "url": "http://remote.test"}
+
+    async def fake_send(*args, **kwargs):
+        return {"id": "t1", "status": {"state": "TASK_STATE_SUBMITTED"}}
+
+    async def fake_get(*args, **kwargs):
+        return next(states)
+
+    monkeypatch.setattr(cli.client, "fetch_agent_card", fake_card)
+    monkeypatch.setattr(cli.client, "send_message", fake_send)
+    monkeypatch.setattr(cli.client, "get_task", fake_get)
+    args = argparse.Namespace(
+        a2a_command="send", agent="http://remote.test", message="hello", file_id=[], token=None,
+        json=True, wait=True, timeout=1, poll_interval=0,
+    )
+    assert a2a_command(args) == 0
+    assert json.loads(capsys.readouterr().out)["task"]["status"]["state"] == "TASK_STATE_COMPLETED"
+
+
+def test_send_follow_streams_task_updates(config, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
+    from hermes_a2a_bridge.config import save_config
+
+    save_config(config)
+
+    async def fake_card(url):
+        return {"name": "Remote", "url": "http://remote.test"}
+
+    async def fake_stream(*args, **kwargs):
+        yield {"id": 1, "event": "message", "data": {"task": {"id": "t1", "status": {"state": "TASK_STATE_SUBMITTED"}}}}
+        yield {"id": 2, "event": "message", "data": {"statusUpdate": {"taskId": "t1", "status": {"state": "TASK_STATE_COMPLETED"}}}}
+
+    monkeypatch.setattr(cli.client, "fetch_agent_card", fake_card)
+    monkeypatch.setattr(cli.client, "stream_message", fake_stream)
+    args = argparse.Namespace(
+        a2a_command="send", agent="http://remote.test", message="hello", file_id=[], token=None,
+        json=True, wait=False, follow=True, timeout=120, poll_interval=1,
+    )
+    assert a2a_command(args) == 0
+    assert [json.loads(line)["id"] for line in capsys.readouterr().out.splitlines()] == [1, 2]
 
 
 def test_cli_send_file_id_passes_ids_without_reading_files(config, tmp_path, monkeypatch, capsys):

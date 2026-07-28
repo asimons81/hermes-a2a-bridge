@@ -28,6 +28,7 @@ from .operations import (
     list_cancellations,
     list_files,
     list_leases,
+    maintenance_doctor,
     maintenance_stats,
     parse_file_metadata_json,
     prune_events,
@@ -51,6 +52,10 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     sub = parser.add_subparsers(dest="a2a_command", required=True)
 
     sub.add_parser("init", help="Create the local config file and SQLite database")
+    setup = sub.add_parser("setup", help="Explicitly create the local config file and SQLite database")
+    setup.add_argument("--json", action="store_true", help="Emit JSON only")
+    status = sub.add_parser("status", help="Show a read-only local operational summary")
+    status.add_argument("--json", action="store_true", help="Emit JSON only")
 
     card = sub.add_parser("card", help="Print the local Agent Card")
     card.add_argument("--json", action="store_true", help="Emit JSON only")
@@ -192,6 +197,7 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     maintenance_sub = maintenance.add_subparsers(dest="maintenance_command", required=True)
     for name, help_text in (
         ("stats", "Show local task and event database statistics"),
+        ("doctor", "Run read-only local database and configuration checks"),
         ("prune-events", "Apply the configured event retention policy"),
         ("recover-stale", "Recover stale non-terminal tasks"),
         ("leases", "List task ownership leases"),
@@ -206,6 +212,11 @@ def register_cli(parser: argparse.ArgumentParser) -> None:
     send.add_argument("message")
     send.add_argument("--file-id", action="append", default=[], help="Attach a stored Hermes file ID reference")
     send.add_argument("--token", help="Override any saved bearer token")
+    completion = send.add_mutually_exclusive_group()
+    completion.add_argument("--wait", action="store_true", help="Wait for a terminal task state")
+    completion.add_argument("--follow", action="store_true", help="Stream task updates until the remote stream ends")
+    send.add_argument("--timeout", type=float, default=120, help="Maximum seconds to wait with --wait (default: 120)")
+    send.add_argument("--poll-interval", type=float, default=1, help="Seconds between task polls with --wait (default: 1)")
     send.add_argument("--json", action="store_true", help="Emit JSON only")
 
     stream = sub.add_parser("stream", help="Stream one text task from a remote agent", allow_abbrev=False)
@@ -692,14 +703,39 @@ async def _remote(args, store: Store) -> dict[str, Any]:
             "bytesWritten": len(body),
         }
     if command == "send":
-        return _format_task(await client.send_message(
+        task = await client.send_message(
             endpoint, args.message, token, file_ids=getattr(args, "file_id", None),
-        ))
+        )
+        if getattr(args, "wait", False):
+            task = await _wait_for_terminal_task(
+                endpoint, task, token, float(getattr(args, "timeout", 120)),
+                float(getattr(args, "poll_interval", 1)),
+            )
+        return _format_task(task)
     if command == "tasks":
         return _format_tasks(await client.list_tasks(endpoint, token))
     if command == "task":
         return _format_task(await client.get_task(endpoint, args.task_id, token))
     return _format_task(await client.cancel_task(endpoint, args.task_id, token))
+
+
+async def _wait_for_terminal_task(
+    endpoint: str, task: dict[str, Any], token: str | None, timeout: float, poll_interval: float,
+) -> dict[str, Any]:
+    if timeout <= 0 or poll_interval < 0:
+        raise ValueError("--timeout must be positive and --poll-interval cannot be negative")
+    task_id = task.get("id")
+    if not isinstance(task_id, str) or not task_id:
+        raise ClientError("Remote agent accepted a task without an ID; cannot wait for completion")
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while task.get("status", {}).get("state") not in TERMINAL_STATES:
+        if loop.time() >= deadline:
+            raise ClientError(f"Timed out waiting for task {task_id}; rerun: hermes a2a task {task_id} --agent {endpoint}")
+        if poll_interval:
+            await asyncio.sleep(min(poll_interval, max(0, deadline - loop.time())))
+        task = await client.get_task(endpoint, task_id, token)
+    return task
 
 
 def _render_stream_event(envelope: dict[str, Any]) -> None:
@@ -726,7 +762,7 @@ def _render_stream_event(envelope: dict[str, Any]) -> None:
 
 
 async def _stream_cli(args, store: Store, config: dict[str, Any]) -> None:
-    if args.a2a_command == "stream":
+    if args.a2a_command in {"stream", "send"}:
         base, token = _resolved(store, args.agent, args.token)
         endpoint = client.agent_endpoint(await client.fetch_agent_card(base))
         events = client.stream_message(endpoint, args.message, token, file_ids=getattr(args, "file_id", None))
@@ -752,7 +788,7 @@ def a2a_command(args) -> int:
         if command in {"send", "stream"}:
             client.validate_file_ids(getattr(args, "file_id", None))
 
-        if command == "init":
+        if command in {"init", "setup"}:
             config = load_config(create_if_missing=True)
             Store(database_path(), config.get("sqlite", {}), config.get("faults", {}))
             _print({"config": str(config_path()), "database": str(database_path()), "initialized": True}, True)
@@ -768,6 +804,25 @@ def a2a_command(args) -> int:
 
         config = load_config()
         store = Store(database_path(), config.get("sqlite", {}), config.get("faults", {}))
+
+        if command == "status":
+            stats = store.maintenance_stats()
+            result = {
+                "success": True,
+                "initialized": True,
+                "tasks": stats["task_count"],
+                "events": stats["event_count"],
+                "registry": stats["registry_count"],
+                "sqlite": {
+                    key: stats[key] for key in (
+                        "database_path", "database_size_bytes", "journal_mode", "busy_timeout_ms",
+                        "synchronous", "sqlite_warnings", "sqlite_warning_count",
+                        "sqlite_retry_count", "sqlite_retry_exhausted_count",
+                    )
+                },
+            }
+            _print(result, True) if as_json else _render_text(result)
+            return 0
 
         if command == "card":
             card = wire(build_agent_card(config))
@@ -830,6 +885,8 @@ def a2a_command(args) -> int:
         if command == "maintenance":
             if args.maintenance_command == "stats":
                 result = maintenance_stats(store, config)
+            elif args.maintenance_command == "doctor":
+                result = maintenance_doctor(store, config)
             elif args.maintenance_command == "prune-events":
                 result = prune_events(store, config)
             elif args.maintenance_command == "recover-stale":
@@ -857,7 +914,7 @@ def a2a_command(args) -> int:
                 _render_files(args.files_command, result)
             return 0
 
-        if command in {"stream", "subscribe"}:
+        if command in {"stream", "subscribe"} or (command == "send" and getattr(args, "follow", False)):
             asyncio.run(_stream_cli(args, store, config))
             return 0
 

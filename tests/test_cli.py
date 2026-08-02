@@ -422,6 +422,21 @@ def test_status_is_read_only_and_reports_local_operational_summary(config, tmp_p
     assert Store(database_path()).list_cancellation_requests()[0]["status"] == "pending"
 
 
+def test_status_text_mode_renders_counts_without_crashing(config, tmp_path, monkeypatch, capsys):
+    """`hermes a2a status` (human output) must render task/event counts, not crash."""
+    monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
+    from hermes_a2a_bridge.config import config_path, database_path, save_config
+
+    save_config(config)
+    args = argparse.Namespace(a2a_command="status", json=False)
+
+    assert a2a_command(args) == 0
+    out = capsys.readouterr().out
+    assert "initialized: yes" in out
+    assert "tasks: 0" in out
+    assert "database:" in out
+
+
 def test_send_wait_polls_until_terminal(config, tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("HERMES_A2A_HOME", str(tmp_path / "a2a"))
     from hermes_a2a_bridge.config import save_config

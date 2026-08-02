@@ -370,6 +370,16 @@ def _render_text(result: dict[str, Any]) -> None:
             suffix = f" (token saved: {'yes' if agent.get('hasToken') else 'no'})" if "hasToken" in agent else ""
             _print(f"{agent['name']} -> {agent['url']}{suffix}")
         return
+    if "success" in result and "initialized" in result and "sqlite" in result:
+        # `status` result: tasks/events/registry are counts, not lists.
+        _print(f"initialized: {'yes' if result['initialized'] else 'no'}")
+        _print(f"tasks: {result.get('tasks', 0)}")
+        _print(f"events: {result.get('events', 0)}")
+        _print(f"registry agents: {result.get('registry', 0)}")
+        sqlite = result.get("sqlite", {})
+        if isinstance(sqlite, dict) and sqlite.get("database_path"):
+            _print(f"database: {sqlite['database_path']}")
+        return
     if "tasks" in result:
         for task in result["tasks"]:
             _print(f"{task['id']}: {task['status']['state']}")
